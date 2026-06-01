@@ -1,0 +1,32 @@
+▲ Next.js 16.2.4 (webpack)
+- Local:         http://localhost:3456
+- Network:       http://192.168.1.18:3456
+- Environments: .env.local
+✓ Ready in 516ms
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+ GET / 200 in 4.0s (next.js: 2.4s, proxy.ts: 149ms, application-code: 1446ms)
+ GET /api/admin/verify 401 in 1073ms (next.js: 1030ms, proxy.ts: 19ms, application-code: 24ms)
+ GET /api/admin/verify 401 in 36ms (next.js: 5ms, proxy.ts: 23ms, application-code: 7ms)
+Rate limit DB error for admin_login: Could not find the table 'public.rate_limits' in the schema cache
+ POST /api/admin/login 400 in 852ms (next.js: 495ms, proxy.ts: 10ms, application-code: 347ms)
+Rate limit DB error for admin_login: Could not find the table 'public.rate_limits' in the schema cache
+ POST /api/admin/login 400 in 299ms (next.js: 3ms, proxy.ts: 8ms, application-code: 287ms)
+Rate limit DB error for admin_login: Could not find the table 'public.rate_limits' in the schema cache
+ POST /api/admin/login 200 in 596ms (next.js: 3ms, proxy.ts: 5ms, application-code: 587ms)
+Rate limit DB error for admin_login: Could not find the table 'public.rate_limits' in the schema cache
+ POST /api/admin/login 200 in 635ms (next.js: 2ms, proxy.ts: 6ms, application-code: 626ms)
+ GET /api/admin/verify 401 in 189ms (next.js: 6ms, proxy.ts: 9ms, application-code: 174ms)
+Rate limit DB error for admin_login: Could not find the table 'public.rate_limits' in the schema cache
+ POST /api/admin/login 200 in 648ms (next.js: 3ms, proxy.ts: 5ms, application-code: 639ms)
+ GET /api/admin/verify 401 in 351ms (next.js: 3ms, proxy.ts: 6ms, application-code: 342ms)
+Wishlist API error: {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column products.store_id does not exist'
+}
+ GET /api/products/wishlist?slugs=henley-shirt- 200 in 1411ms (next.js: 689ms, proxy.ts: 7ms, application-code: 715ms)
+ GET /api/products/henley-shirt- 200 in 2.0s (next.js: 1208ms, proxy.ts: 180ms, application-code: 644ms)
+ GET /shop 200 in 1550ms (next.js: 924ms, proxy.ts: 12ms, application-code: 614ms)
+ POST /api/checkout 500 in 995ms (next.js: 470ms, proxy.ts: 7ms, application-code: 518ms)
