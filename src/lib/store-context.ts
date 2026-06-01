@@ -111,6 +111,7 @@ export async function getStoreContext(req: NextRequest): Promise<StoreContext> {
     return { storeId: DEFAULT_STORE_ID, isSuperAdmin: false, source: 'default' };
   }
 
-  // ── 5. Production: rejection ──
-  throw new Error('No store context could be resolved for this request');
+  // ── 5. Production: fallback to default store ──
+  console.warn(`[store-context] No store resolved for host "${host}", falling back to default`);
+  return { storeId: DEFAULT_STORE_ID, isSuperAdmin: false, source: 'default' };
 }
