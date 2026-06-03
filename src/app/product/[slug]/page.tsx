@@ -8,6 +8,11 @@ import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import ReviewSection from '@/components/ReviewSection';
+import SocialProof from '@/components/SocialProof';
+import CountdownTimer from '@/components/CountdownTimer';
+import { ProductDetailSkeleton } from '@/components/Skeleton';
+import { trackRecentlyViewed } from '@/components/RecentlyViewed';
+import ImageZoom from '@/components/ImageZoom';
 
 export default function ProductDetails({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = use(params);
@@ -19,8 +24,10 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [selectedSizes, setSelectedSizes] = useState<string[]>(['']);
+  const [selectedSize, setSelectedSize] = useState<string>('');
   const [isAdding, setIsAdding] = useState(false);
+  const [flashSale, setFlashSale] = useState<{ discount_percentage: number; ends_at: string } | null>(null);
+  const [relevantBundles, setRelevantBundles] = useState<Array<{ id: string; name: string; description: string | null; products: string[]; discount_type: string; discount_value: number; image: string | null }>>([]);
 
   const { addItem } = useCart();
 
@@ -28,16 +35,35 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
     async function fetchProduct() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/products/${encodeURIComponent(resolvedParams.slug)}`);
-        const json = await res.json();
+        const [productRes, flashRes, bundlesRes] = await Promise.all([
+          fetch(`/api/products/${encodeURIComponent(resolvedParams.slug)}`),
+          fetch('/api/flash-sales'),
+          fetch('/api/bundles'),
+        ]);
+        const json = await productRes.json();
+        const flashData = await flashRes.json();
+        const bundlesData = await bundlesRes.json();
 
-        if (!res.ok || !json.product) {
+        if (!productRes.ok || !json.product) {
           setError('Product not found.');
         } else {
           setProduct(json.product);
           setSelectedImage(json.product.main_image);
           if (json.relatedProducts) {
             setRelatedProducts(json.relatedProducts);
+          }
+          trackRecentlyViewed(json.product);
+          if (flashData.sales) {
+            const sale = flashData.sales.find((s: { product_id: string; discount_percentage: number; ends_at: string }) =>
+              s.product_id === json.product.id
+            );
+            if (sale) setFlashSale(sale);
+          }
+          if (bundlesData.bundles) {
+            const relevant = bundlesData.bundles.filter((b: { products: string[] }) =>
+              b.products.includes(json.product.id) && b.products.length > 1
+            );
+            setRelevantBundles(relevant);
           }
         }
       } catch {
@@ -53,46 +79,28 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
     const maxLimit = product?.stock || 10;
     if (quantity < maxLimit) {
       setQuantity(prev => prev + 1);
-      setSelectedSizes(prev => [...prev, '']);
     }
   };
 
   const decrementQuantity = () => {
     if (quantity > 1) {
       setQuantity(prev => prev - 1);
-      setSelectedSizes(prev => prev.slice(0, -1));
     }
-  };
-
-  const handleSizeChange = (index: number, size: string) => {
-    const newSizes = [...selectedSizes];
-    newSizes[index] = size;
-    setSelectedSizes(newSizes);
   };
 
   const handleAddToCart = () => {
-    if (selectedSizes.some(size => size === '')) {
-      alert('Please select a size for all items');
+    if (!selectedSize) {
+      alert('Please select a size');
       return;
     }
     setIsAdding(true);
-    for (const size of selectedSizes) {
-      addItem(product!, size, 1);
-    }
+    addItem(product!, selectedSize, quantity);
     router.push('/cart');
   };
 
   // Loading State
   if (loading) {
-    return (
-      <div className="min-h-screen pt-24 flex items-center justify-center bg-[#F8F9FB]">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-          className="w-10 h-10 border-2 border-[#8BA4B8] border-t-transparent rounded-full"
-        />
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   // Error State
@@ -132,7 +140,7 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
                       : 'ring-1 ring-[#E5E7EB] hover:ring-[#8BA4B8]'
                   }`}
                 >
-                  <Image src={img} alt={`View ${index + 1}`} fill className="object-cover" />
+                  <Image src={img} alt={`View ${index + 1}`} fill sizes="(max-width: 1024px) 64px, 80px" className="object-cover" />
                 </button>
               ))}
             </div>
@@ -149,14 +157,7 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
                     transition={{ duration: 0.3 }}
                     className="w-full h-full"
                   >
-                    <Image
-                      src={selectedImage}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                      priority
-
-                    />
+                    <ImageZoom src={selectedImage} alt={product.name} />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -183,6 +184,14 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
                 </span>
               )}
             </div>
+            {flashSale && (
+              <div className="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl">
+                <div className="flex items-center gap-2 text-rose-600 font-semibold text-sm mb-1">
+                  <span>🔥 FLASH SALE — {flashSale.discount_percentage}% OFF</span>
+                </div>
+                <CountdownTimer endsAt={flashSale.ends_at} />
+              </div>
+            )}
 
             {/* Quantity */}
             <div className="mt-8">
@@ -211,46 +220,37 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
                     animate={{ opacity: 1, scale: 1 }}
                     className="text-[#6B8BA0] text-xs font-medium bg-[#8BA4B8]/10 px-4 py-2 rounded-full flex items-center gap-2"
                   >
-                    <span>✦</span> Bundle Offer: EGP 100 Discount Applied!
+                    <span>✦</span> Add multiple items to qualify for bundle discounts
                   </motion.div>
                 )}
               </div>
             </div>
 
             {/* Size Selection */}
-            <div className="mt-10 space-y-5">
-              {selectedSizes.map((currentSize, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="p-5 border border-[#E5E7EB] rounded-xl bg-white hover:border-[#8BA4B8]/30 transition-all"
-                >
-                  <h3 className="text-xs text-[#8BA4B8] font-semibold uppercase mb-3 tracking-widest flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-[#8BA4B8] text-white flex items-center justify-center text-[10px] font-bold">
-                      {index + 1}
-                    </span>
-                    Size for this item
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {product.sizes?.map((size) => (
-                      <button
-                        key={size}
-                        type="button"
-                        onClick={() => handleSizeChange(index, size)}
-                        className={`py-2 px-5 text-xs font-medium uppercase rounded-full transition-all duration-300 ${
-                          currentSize === size
-                            ? 'bg-[#8BA4B8] text-white shadow-sm scale-105'
-                            : 'bg-[#F3F5F8] text-[#6B7280] hover:bg-[#E5E7EB] hover:text-[#1A1A1A]'
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              ))}
+            <div className="mt-10">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-5 border border-[#E5E7EB] rounded-xl bg-white hover:border-[#8BA4B8]/30 transition-all"
+              >
+                <h3 className="text-xs text-[#8BA4B8] font-semibold uppercase mb-3 tracking-widest">Select Size</h3>
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes?.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setSelectedSize(size)}
+                      className={`py-2 px-5 text-xs font-medium uppercase rounded-full transition-all duration-300 ${
+                        selectedSize === size
+                          ? 'bg-[#8BA4B8] text-white shadow-sm scale-105'
+                          : 'bg-[#F3F5F8] text-[#6B7280] hover:bg-[#E5E7EB] hover:text-[#1A1A1A]'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
             </div>
 
             {/* Add to Cart */}
@@ -268,7 +268,7 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
               </button>
               {quantity > 1 && (
                 <p className="text-center text-[#9CA3AF] text-xs mt-3 italic">
-                  * Final discount will be visible in your Order Summary.
+                  * Bundle discounts (if any) will be applied at checkout.
                 </p>
               )}
             </div>
@@ -276,6 +276,37 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
         </div>
       </div>
       
+      {/* Bundles / Complete the Look */}
+      {relevantBundles.length > 0 && (
+        <div className="max-w-7xl mx-auto mt-20 border-t border-[#E5E7EB] pt-12">
+          <h2 className="text-2xl font-[family-name:var(--font-playfair)] text-[#1A1A1A] mb-6 text-center">Complete the Look</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {relevantBundles.map(bundle => (
+              <div key={bundle.id} className="bg-white rounded-2xl border border-[#E5E7EB] p-6 text-center hover:shadow-md transition-all">
+                {bundle.image ? (
+                  <div className="w-full aspect-[4/3] rounded-xl bg-[#F3F5F8] overflow-hidden mb-4">
+                    <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${bundle.image})` }} />
+                  </div>
+                ) : (
+                  <div className="w-full aspect-[4/3] rounded-xl bg-[#F3F5F8] flex items-center justify-center mb-4">
+                    <span className="text-3xl font-bold text-[#E5E7EB] font-[family-name:var(--font-playfair)]">OG</span>
+                  </div>
+                )}
+                <h3 className="font-bold text-sm mb-1">{bundle.name}</h3>
+                {bundle.description && <p className="text-xs text-[#6B7280] mb-3">{bundle.description}</p>}
+                <p className="text-sm font-bold text-rose-500">
+                  {bundle.discount_type === 'percentage' ? `${bundle.discount_value}% OFF` : `EGP ${bundle.discount_value} OFF`}
+                </p>
+                <p className="text-[10px] text-[#9CA3AF] mt-2">Add both to cart to save</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Social Proof */}
+      <SocialProof productId={product.id} todaySales={0} />
+
       {/* Reviews */}
       <div className="max-w-3xl mx-auto">
         <ReviewSection productSlug={resolvedParams.slug} />

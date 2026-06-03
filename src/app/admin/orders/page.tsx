@@ -21,13 +21,20 @@ export default function AdminOrders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 20;
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (p = page) => {
     try {
-      const res = await fetch('/api/admin/orders');
+      const params = new URLSearchParams({ page: String(p), limit: String(limit) });
+      if (searchTerm) params.set('search', searchTerm);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      const res = await fetch(`/api/admin/orders?${params}`);
       if (!res.ok) { setOrders([]); return; }
-      const data = await res.json();
-      setOrders(data || []);
+      const response = await res.json();
+      setOrders(response.data || []);
+      setTotalPages(response.totalPages || 1);
     } catch (error) {
       setOrders([]);
     } finally {
@@ -35,7 +42,7 @@ export default function AdminOrders() {
     }
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => { fetchOrders(page); }, [page, searchTerm, statusFilter]);
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     if (!confirm(`Change order status to "${newStatus}"?`)) return;
@@ -64,8 +71,9 @@ export default function AdminOrders() {
       }
       setOrders(prev => prev.filter(order => order.id !== orderId));
       alert('Order permanently deleted');
-    } catch (error: any) {
-      alert(error.message || 'Error deleting order');
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : 'Error deleting order';
+      alert(errMsg);
     }
   };
 
@@ -86,19 +94,25 @@ export default function AdminOrders() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="p-2">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-[family-name:var(--font-playfair)] text-[#1A1A1A]">Orders</h1>
+        <button onClick={() => window.open('/api/admin/orders/export', '_blank')}
+          className="px-5 py-2.5 bg-[#1A1A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#333] transition-all flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          Export Excel
+        </button>
       </div>
 
-      <div className="flex gap-4 mb-6">
-        <input type="text" placeholder="Search by name, phone, or order ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 px-4 py-3 bg-white border border-[#E5E7EB] rounded-xl text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none text-sm transition-all" />
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-3 bg-white border border-[#E5E7EB] rounded-xl text-[#1A1A1A] focus:border-[#8BA4B8] focus:outline-none text-sm transition-all">
-          <option value="all">All Status</option>
-          {deliveryStatuses.map(status => (
-            <option key={status.value} value={status.value}>{status.label}</option>
-          ))}
-        </select>
-      </div>
+            <div className="flex flex-wrap gap-4 mb-6">
+              <input type="text" placeholder="Search orders..."
+                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 min-w-[200px] px-4 py-2.5 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-sm focus:border-[#8BA4B8] focus:outline-none transition-all" />
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2.5 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-sm focus:border-[#8BA4B8] focus:outline-none transition-all">
+                <option value="">All Statuses</option>
+                {deliveryStatuses.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </div>
 
       {loading ? (
         <div className="animate-pulse space-y-4">
@@ -111,7 +125,7 @@ export default function AdminOrders() {
           <AnimatePresence>
             {filteredOrders.map((order) => {
               const statusInfo = getStatusInfo(order.status);
-              const totalItemsCount = order.items?.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0) || 0;
+              const totalItemsCount = order.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0;
               return (
                 <motion.div key={order.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
                   className="bg-white rounded-xl border border-[#E5E7EB] p-6 relative group shadow-sm hover:shadow-md transition-all">
@@ -157,15 +171,38 @@ export default function AdminOrders() {
                         </button>
                       ))}
                     </div>
+                    <div className="flex gap-2">
+                    <button onClick={() => window.open(`/admin/orders/invoice/${order.id}`, '_blank')}
+                      className="px-4 py-2 bg-[#F3F5F8] text-[#6B7280] hover:bg-[#E5E7EB] rounded-lg text-sm font-semibold transition-all">
+                      Print Invoice
+                    </button>
                     <button onClick={() => setSelectedOrder(order)}
                       className="px-4 py-2 border border-[#8BA4B8] text-[#8BA4B8] hover:bg-[#8BA4B8] hover:text-white rounded-lg text-sm font-semibold transition-all">
                       View Details
                     </button>
                   </div>
+                  </div>
                 </motion.div>
               );
             })}
           </AnimatePresence>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-6">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
+            className="px-4 py-2 bg-[#F3F5F8] text-[#6B7280] hover:bg-[#E5E7EB] disabled:opacity-40 rounded-lg text-sm font-semibold transition-all">
+            Previous
+          </button>
+          <span className="text-sm text-[#6B7280] font-medium">
+            Page {page} of {totalPages}
+          </span>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
+            className="px-4 py-2 bg-[#F3F5F8] text-[#6B7280] hover:bg-[#E5E7EB] disabled:opacity-40 rounded-lg text-sm font-semibold transition-all">
+            Next
+          </button>
         </div>
       )}
 
@@ -208,10 +245,10 @@ export default function AdminOrders() {
                 <div>
                   <p className="text-[#6B7280] text-sm mb-4 font-semibold uppercase tracking-wider">Items</p>
                   <div className="space-y-3">
-                    {selectedOrder.items?.map((item: any, idx: number) => (
+                    {selectedOrder.items?.map((item, idx) => (
                       <div key={idx} className="flex gap-4 items-center bg-[#F8F9FB] p-4 rounded-xl border border-[#E5E7EB]">
                         <div className="relative w-16 h-20 flex-shrink-0 bg-[#F3F5F8] rounded-lg overflow-hidden">
-                          {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" />}
+                          {item.image && <Image src={item.image} alt={item.name || ''} fill sizes="(max-width: 640px) 64px, 64px" className="object-cover" />}
                         </div>
                         <div className="flex-1">
                           <p className="font-bold text-[#1A1A1A] text-lg mb-1">{item.name}</p>
@@ -221,7 +258,7 @@ export default function AdminOrders() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-bold text-[#8BA4B8]">{(item.price * (item.quantity || 1)).toLocaleString()} EGP</p>
+                          <p className="text-sm font-bold text-[#8BA4B8]">{((item.price || 0) * (item.quantity || 1)).toLocaleString()} EGP</p>
                         </div>
                       </div>
                     ))}
@@ -230,7 +267,7 @@ export default function AdminOrders() {
                 <div className="flex justify-between items-center pt-6 border-t border-[#F0F0F0]">
                   <div>
                     <p className="text-[#9CA3AF] text-sm">Total Items</p>
-                    <p className="text-xl font-bold text-[#1A1A1A]">{selectedOrder.items?.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0) || 0} pieces</p>
+                    <p className="text-xl font-bold text-[#1A1A1A]">{selectedOrder.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0} pieces</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[#9CA3AF] text-sm">Total Amount</p>

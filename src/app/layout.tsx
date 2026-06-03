@@ -7,6 +7,11 @@ import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import ScrollToTop from "@/components/ScrollToTop";
 import { JsonLd } from "@/components/JsonLd";
+import NewsletterPopup from "@/components/NewsletterPopup";
+import PwaRegistry from "@/components/PwaRegistry";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -23,7 +28,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://oldgold.life'),
   other: {
-    'theme-color': '#F8F9FB',
+    'theme-color': '#8BA4B8',
   },
   title: {
     default: 'OG Old Gold | Premium Luxury Fashion Store',
@@ -33,7 +38,7 @@ export const metadata: Metadata = {
   keywords: ['Luxury Fashion', 'OG Old Gold', 'Premium Streetwear', 'Designer Clothing Egypt', 'Exclusive Apparel'],
   icons: {
     icon: '/icon.png',
-    apple: '/icon.png',
+    apple: '/icons/apple-touch-icon.png',
   },
   openGraph: {
     type: 'website',
@@ -70,14 +75,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             "https://www.tiktok.com/@og.oldgold",
           ],
         }} />
+        <ThemeProvider>
+        <AuthProvider>
         <WishlistProvider>
         <CartProvider>
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
           <ScrollToTop />
+          <NewsletterPopup />
+          <PwaRegistry />
+          <PWAInstallPrompt />
         </CartProvider>
         </WishlistProvider>
+        </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

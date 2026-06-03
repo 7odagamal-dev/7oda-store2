@@ -16,6 +16,105 @@
 --shadow-lg: 0 10px 40px rgba(0,0,0,0.08);
 }
 
+.dark {
+--background: #0F1115;
+--foreground: #E5E7EB;
+--secondary: #9CA3AF;
+--accent: #8BA4B8;
+--accent-deep: #6B8BA0;
+--accent-light: #2D3748;
+--card: #1A1D24;
+--card-hover: #252830;
+--border: #2D3748;
+--border-light: #252830;
+--muted: #6B7280;
+--button-bg: #374151;
+--skeleton: #2D3748;
+--shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+--shadow-md: 0 4px 20px rgba(0,0,0,0.3);
+--shadow-lg: 0 10px 40px rgba(0,0,0,0.4);
+}
+
+/* ==========================================================================
+   Dark mode overrides for hardcoded Tailwind arbitrary colors
+   These match the exact compiled class names from Tailwind v4
+   ========================================================================== */
+.dark .bg-\[\#F8F9FB\] { background-color: #0F1115 !important; }
+.dark .bg-\[\#F3F5F8\] { background-color: #252830 !important; }
+.dark .bg-\[\#FFFFFF\] { background-color: #1A1D24 !important; }
+.dark .bg-white { background-color: #1A1D24 !important; }
+.dark .bg-\[\#E5E7EB\] { background-color: #2D3748 !important; }
+.dark .bg-\[\#1A1A1A\] { background-color: #374151 !important; }
+.dark .bg-\[\#8BA4B8\] { background-color: #7A93A8 !important; }
+.dark .bg-\[\#8BA4B8\]\/10 { background-color: rgba(139,164,184,0.08) !important; }
+.dark .bg-\[\#8BA4B8\]\/20 { background-color: rgba(139,164,184,0.15) !important; }
+.dark .bg-\[\#6B8BA0\] { background-color: #5A7A90 !important; }
+.dark .bg-\[\#9CA3AF\] { background-color: #6B7280 !important; }
+.dark .bg-\[\#F0F7F4\] { background-color: #1A1D24 !important; }
+.dark .bg-\[\#F9FAFB\] { background-color: #1A1D24 !important; }
+.dark .bg-\[\#d4af37\]\/10 { background-color: rgba(212,175,55,0.06) !important; }
+
+.dark .text-\[\#1A1A1A\] { color: #E5E7EB !important; }
+.dark .text-\[\#6B7280\] { color: #9CA3AF !important; }
+.dark .text-\[\#9CA3AF\] { color: #6B7280 !important; }
+.dark .text-\[\#8BA4B8\] { color: #A0C4D4 !important; }
+.dark .text-\[\#6B8BA0\] { color: #8BA4B8 !important; }
+.dark .text-\[\#4B5563\] { color: #9CA3AF !important; }
+.dark .text-\[\#D1D5DB\] { color: #4B5563 !important; }
+.dark .text-\[\#E5E7EB\] { color: #E5E7EB !important; }
+.dark .placeholder-\[\#9CA3AF\]::placeholder { color: #6B7280 !important; }
+
+.dark .border-\[\#E5E7EB\] { border-color: #2D3748 !important; }
+.dark .border-\[\#F0F0F0\] { border-color: #252830 !important; }
+.dark .border-\[\#8BA4B8\] { border-color: #7A93A8 !important; }
+.dark .border-\[\#8BA4B8\]\/40 { border-color: rgba(139,164,184,0.40) !important; }
+.dark .border-\[\#1A1A1A\] { border-color: #E5E7EB !important; }
+.dark .border-\[\#C6DFD4\] { border-color: #2D3748 !important; }
+
+.dark .divide-\[\#F0F0F0\] > :not(:last-child) { border-color: #252830 !important; }
+
+.dark .ring-\[\#E5E7EB\] { --tw-ring-color: #2D3748 !important; }
+.dark .ring-\[\#8BA4B8\] { --tw-ring-color: #7A93A8 !important; }
+.dark .ring-\[\#8BA4B8\]\/30 { --tw-ring-color: rgba(139,164,184,0.30) !important; }
+
+.dark .accent-\[\#8BA4B8\] { accent-color: #7A93A8 !important; }
+
+.dark .stroke-\[\#6B7280\] { stroke: #9CA3AF !important; }
+
+.dark .from-\[\#8BA4B8\]\/10 { --tw-gradient-from: rgba(139,164,184,0.08) !important; }
+.dark .from-\[\#E5E7EB\] { --tw-gradient-from: #2D3748 !important; }
+.dark .via-\[\#F3F5F8\] { --tw-gradient-via: #252830 !important; }
+.dark .to-\[\#E5E7EB\] { --tw-gradient-to: #2D3748 !important; }
+
+.dark .hover\:bg-\[\#F3F5F8\]:hover { background-color: #2D3748 !important; }
+.dark .hover\:bg-\[\#E5E7EB\]:hover { background-color: #374151 !important; }
+.dark .hover\:bg-\[\#333\]:hover { background-color: #4B5563 !important; }
+.dark .hover\:bg-\[\#1A1A1A\]:hover { background-color: #374151 !important; }
+.dark .hover\:bg-\[\#8BA4B8\]:hover { background-color: #7A93A8 !important; }
+.dark .hover\:bg-\[\#6B8BA0\]:hover { background-color: #5A7A90 !important; }
+.dark .hover\:bg-\[\#F8F9FB\]:hover { background-color: #0F1115 !important; }
+.dark .hover\:bg-\[\#F9FAFB\]:hover { background-color: #1A1D24 !important; }
+.dark .hover\:bg-\[\#c9a432\]:hover { background-color: #b8962e !important; }
+.dark .hover\:bg-\[\#5A7A8F\]:hover { background-color: #4A6A7F !important; }
+
+.dark .hover\:text-\[\#1A1A1A\]:hover { color: #E5E7EB !important; }
+.dark .hover\:text-\[\#6B8BA0\]:hover { color: #8BA4B8 !important; }
+
+.dark .hover\:border-\[\#8BA4B8\]:hover { border-color: #7A93A8 !important; }
+.dark .hover\:border-\[\#8BA4B8\]\/30:hover { border-color: rgba(139,164,184,0.30) !important; }
+
+.dark .focus\:border-\[\#8BA4B8\]:focus { border-color: #7A93A8 !important; }
+.dark .focus\:ring-\[\#8BA4B8\]:focus { --tw-ring-color: #7A93A8 !important; }
+
+.dark .group-hover\:text-\[\#8BA4B8\]:is(:where(.group):hover *) { color: #A0C4D4 !important; }
+
+.dark ::-webkit-scrollbar-thumb { background: #4B5563 !important; }
+.dark ::selection { background: rgba(139, 164, 184, 0.15) !important; }
+.dark .glass {
+  background: rgba(26, 29, 36, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
 @theme inline {
 --color-background: var(--background);
 --color-foreground: var(--foreground);
@@ -84,6 +183,15 @@ transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1.2);
 /* Subtle image treatment */
 img {
 image-rendering: auto;
+}
+
+/* Shimmer animation for loading skeletons */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
 }
 
 /* ==========================================================================

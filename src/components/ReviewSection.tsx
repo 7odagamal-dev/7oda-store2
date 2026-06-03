@@ -8,6 +8,7 @@ interface Review {
   name: string;
   rating: number;
   comment: string;
+  image: string | null;
   created_at: string;
 }
 
@@ -24,6 +25,9 @@ export default function ReviewSection({ productSlug }: ReviewSectionProps) {
   const [name, setName] = useState('');
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -46,19 +50,34 @@ export default function ReviewSection({ productSlug }: ReviewSectionProps) {
       setError('Please fill in all fields and select a rating.');
       return;
     }
+    let finalImageUrl = imageUrl;
+    if (imageFile) {
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append('file', imageFile);
+      const uploadRes = await fetch('/api/upload/review', { method: 'POST', body: formData });
+      if (uploadRes.ok) {
+        const uploadData = await uploadRes.json();
+        finalImageUrl = uploadData.url;
+      }
+      setUploadingImage(false);
+    }
+
     setError('');
     setSubmitting(true);
     try {
       const res = await fetch(`/api/products/${productSlug}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), rating, comment: comment.trim() }),
+        body: JSON.stringify({ name: name.trim(), rating, comment: comment.trim(), image: finalImageUrl || null }),
       });
       if (!res.ok) throw new Error('Failed to submit');
       setSubmitted(true);
       setName('');
       setRating(0);
       setComment('');
+      setImageUrl('');
+      setImageFile(null);
       // Refresh reviews
       const json = await fetch(`/api/products/${productSlug}/reviews`).then(r => r.json());
       setReviews(json.reviews || []);
@@ -139,6 +158,11 @@ export default function ReviewSection({ productSlug }: ReviewSectionProps) {
                 {renderStars(review.rating)}
               </div>
               <p className="text-sm text-[#4B5563] leading-relaxed">{review.comment}</p>
+              {review.image && (
+                <div className="mt-3 rounded-xl overflow-hidden bg-white max-w-[200px]">
+                  <img src={review.image} alt="Review photo" className="w-full h-auto object-cover" />
+                </div>
+              )}
             </div>
           ))
         )}
@@ -177,6 +201,24 @@ export default function ReviewSection({ productSlug }: ReviewSectionProps) {
           </div>
 
           <div className="mb-4">
+            <label className="block text-xs font-medium text-[#6B7280] tracking-wider uppercase mb-1.5">Photo (optional)</label>
+            <div className="flex items-center gap-3">
+              <label className="cursor-pointer px-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs text-[#6B7280] hover:border-[#8BA4B8] transition-all">
+                {imageFile ? imageFile.name : 'Choose image (max 2MB)'}
+                <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} className="hidden" />
+              </label>
+              {imageFile && (
+                <button onClick={() => setImageFile(null)} className="text-xs text-rose-500 hover:underline">Remove</button>
+              )}
+            </div>
+            {imageFile && (
+              <div className="mt-2 w-20 h-20 rounded-xl overflow-hidden bg-white border border-[#E5E7EB]">
+                <img src={URL.createObjectURL(imageFile)} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+
+          <div className="mb-4">
             <label className="block text-xs font-medium text-[#6B7280] tracking-wider uppercase mb-1.5">Your Review</label>
             <textarea
               value={comment}
@@ -192,7 +234,7 @@ export default function ReviewSection({ productSlug }: ReviewSectionProps) {
             disabled={submitting}
             className="px-6 py-3 bg-[#1A1A1A] text-white rounded-xl font-medium text-sm hover:bg-[#333] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? 'Submitting...' : 'Submit Review'}
+            {uploadingImage ? 'Uploading image...' : submitting ? 'Submitting...' : 'Submit Review'}
           </button>
         </form>
       )}

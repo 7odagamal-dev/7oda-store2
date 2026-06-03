@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
 import { Product } from '@/lib/supabase';
@@ -12,11 +12,29 @@ const SORT_OPTIONS = [
   { value: 'discount', label: 'Biggest Discount' },
 ];
 
+interface FlashSaleInfo {
+  product_id: string;
+  discount_percentage: number;
+  ends_at: string;
+}
+
 export default function ShopClient({ initialProducts }: { initialProducts: Product[] }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [sort, setSort] = useState('newest');
   const [onlyDiscount, setOnlyDiscount] = useState(false);
+  const [flashSales, setFlashSales] = useState<Record<string, FlashSaleInfo>>({});
+
+  useEffect(() => {
+    fetch('/api/flash-sales')
+      .then(r => r.json())
+      .then(data => {
+        const map: Record<string, FlashSaleInfo> = {};
+        (data.sales ?? []).forEach((s: FlashSaleInfo) => { map[s.product_id] = s; });
+        setFlashSales(map);
+      })
+      .catch(() => {});
+  }, []);
 
   const categories = useMemo(() => {
     return Array.from(new Set(initialProducts.map(p => p.category).filter(Boolean)));
@@ -128,7 +146,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
           <select
             value={sort}
             onChange={e => setSort(e.target.value)}
-            className="ml-auto px-4 py-2 text-xs bg-white border border-[#E5E7EB] text-[#1A1A1A] focus:border-[#8BA4B8] focus:outline-none rounded-xl cursor-pointer transition-all"
+            className="w-full sm:w-auto sm:ml-auto px-4 py-2 text-xs bg-white border border-[#E5E7EB] text-[#1A1A1A] focus:border-[#8BA4B8] focus:outline-none rounded-xl cursor-pointer transition-all"
           >
             {SORT_OPTIONS.map(o => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -171,7 +189,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
               {filtered.map((product, index) => (
-                <ProductCard key={product.id} product={product} index={index} />
+                <ProductCard key={product.id} product={product} index={index} flashSale={flashSales[product.id]} />
               ))}
             </motion.div>
           )}

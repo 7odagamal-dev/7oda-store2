@@ -19,19 +19,36 @@ export async function GET(req: NextRequest) {
 }
 
 function sanitizeCouponBody(body: Record<string, unknown>, sessionStoreId: string | null) {
-  const allowedFields = ['code', 'discount_type', 'discount_value', 'min_order', 'max_uses', 'expires_at'];
   const sanitized: Record<string, unknown> = {};
-  for (const key of allowedFields) {
-    if (body[key] !== undefined) sanitized[key] = body[key];
-  }
-  if (sanitized.code && typeof sanitized.code === 'string') sanitized.code = sanitized.code.trim().toUpperCase().slice(0, 50);
-  if (!['percentage', 'fixed'].includes(sanitized.discount_type as string)) sanitized.discount_type = 'percentage';
-  if (typeof sanitized.discount_value !== 'number' || sanitized.discount_value < 0) sanitized.discount_value = 0;
-  if (typeof sanitized.min_order !== 'number' || sanitized.min_order < 0) sanitized.min_order = 0;
-  if (sanitized.max_uses !== null && (typeof sanitized.max_uses !== 'number' || sanitized.max_uses < 1)) sanitized.max_uses = null;
-  if (sanitized.expires_at && typeof sanitized.expires_at === 'string' && !sanitized.expires_at.trim()) sanitized.expires_at = null;
   sanitized.store_id = sessionStoreId || '00000000-0000-0000-0000-000000000001';
   sanitized.is_active = true;
+
+  if (typeof body.code === 'string' && body.code.trim()) {
+    sanitized.code = body.code.trim().toUpperCase().slice(0, 50);
+  }
+  if (typeof body.discount_type === 'string' && ['percentage', 'fixed'].includes(body.discount_type)) {
+    sanitized.discount_type = body.discount_type;
+  } else {
+    sanitized.discount_type = 'percentage';
+  }
+  if (typeof body.discount_value === 'number' && body.discount_value >= 0) {
+    sanitized.discount_value = body.discount_value;
+  } else {
+    sanitized.discount_value = 0;
+  }
+  if (typeof body.min_order === 'number' && body.min_order >= 0) {
+    sanitized.min_order = body.min_order;
+  } else {
+    sanitized.min_order = 0;
+  }
+  if (body.max_uses === null || (typeof body.max_uses === 'number' && body.max_uses >= 1)) {
+    sanitized.max_uses = body.max_uses;
+  } else {
+    sanitized.max_uses = null;
+  }
+  if (typeof body.expires_at === 'string' && body.expires_at.trim()) {
+    sanitized.expires_at = body.expires_at.trim();
+  }
   return sanitized;
 }
 
@@ -47,8 +64,9 @@ export async function POST(req: NextRequest) {
     const { data, error } = await supabaseAdmin.from('coupons').insert(sanitized).select().single();
     if (error) throw error;
     return NextResponse.json(data, { status: 201 });
-  } catch (error: any) {
-    if (error?.code === '23505') return NextResponse.json({ error: 'Coupon code already exists' }, { status: 409 });
+  } catch (error: unknown) {
+    const e = error as { code?: string; message?: string };
+    if (e?.code === '23505') return NextResponse.json({ error: 'Coupon code already exists' }, { status: 409 });
     return NextResponse.json({ error: 'Failed to create coupon' }, { status: 500 });
   }
 }

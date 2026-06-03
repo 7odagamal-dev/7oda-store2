@@ -42,9 +42,12 @@ export default function AdminProducts() {
       const res = await fetch('/api/admin/products');
       if (!res.ok) throw new Error('Unauthorized');
       const data = await res.json();
-      setProducts(data || []);
+      console.log('API response:', JSON.stringify(data, null, 2));
+      const list = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+      console.log('list type:', typeof list, Array.isArray(list), list?.length);
+      setProducts(list);
     } catch (error) {
-      console.error(error);
+      console.error('fetchProducts error:', error);
     } finally {
       setLoading(false);
     }
@@ -171,8 +174,9 @@ export default function AdminProducts() {
       resetForm();
       setActiveTab('list');
       fetchProducts();
-    } catch (error: any) {
-      alert('Error: ' + error.message);
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : 'Unknown error';
+      alert('Error: ' + errMsg);
     } finally {
       setSubmitting(false);
     }
@@ -188,8 +192,9 @@ export default function AdminProducts() {
       });
       if (!res.ok) throw new Error('Delete failed');
       setProducts(prev => prev.filter(p => p.id !== id));
-    } catch (err: any) {
-      alert('Error: ' + err.message);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      alert('Error: ' + errMsg);
     }
   };
 
@@ -197,8 +202,8 @@ export default function AdminProducts() {
     const images: ProductImage[] = [];
     if (product.main_image) images.push({ id: '1', url: product.main_image });
     if (product.second_image) images.push({ id: '2', url: product.second_image });
-    if ((product as any).third_image) images.push({ id: '3', url: (product as any).third_image });
-    if ((product as any).fourth_image) images.push({ id: '4', url: (product as any).fourth_image });
+    if (product.third_image) images.push({ id: '3', url: product.third_image });
+    if (product.fourth_image) images.push({ id: '4', url: product.fourth_image });
     setEditingProduct(product);
     setFormData({ name: product.name, slug: product.slug, description: product.description, price: product.price, old_price: product.old_price, category: product.category, stock: product.stock, sizes: product.sizes || [], newSize: '', images, is_featured: product.is_featured });
     setActiveTab('add');
@@ -210,7 +215,11 @@ export default function AdminProducts() {
     setUploadError('');
   };
 
-  const filteredProducts = products.filter(p =>
+  if (!Array.isArray(products)) {
+    console.error('products is not an array:', typeof products, products);
+  }
+  const list = Array.isArray(products) ? products : [];
+  const filteredProducts = list.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -248,7 +257,7 @@ export default function AdminProducts() {
                 <div key={product.id} className="bg-white rounded-xl p-4 border border-[#E5E7EB] hover:shadow-md transition-all group">
                   <div className="relative h-48 bg-[#F3F5F8] rounded-lg mb-3 overflow-hidden">
                     {product.main_image ? (
-                      <Image src={product.main_image} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <Image src={product.main_image} alt={product.name} fill sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-[#9CA3AF]"><span className="text-4xl">📷</span></div>
                     )}
@@ -256,6 +265,13 @@ export default function AdminProducts() {
                   </div>
                   <h3 className="font-semibold text-[#1A1A1A] mb-1 truncate">{product.name}</h3>
                   <p className="text-[#6B7280] text-xs mb-2">{product.category}</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs text-[#6B7280]">Stock:</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${product.stock < 3 ? 'bg-rose-500 text-white animate-pulse' : product.stock < 10 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                      {product.stock}
+                    </span>
+                    {product.stock < 3 && <span className="text-[9px] text-rose-500 font-bold uppercase tracking-wider">Low stock!</span>}
+                  </div>
                   <div className="flex justify-between items-center">
                     <div>
                       <span className="text-[#8BA4B8] font-bold text-lg">{product.price} EGP</span>
@@ -301,7 +317,7 @@ export default function AdminProducts() {
               <textarea value={formData.description} onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))} rows={3} placeholder="Product description..."
                 className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none text-sm transition-all resize-none" />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2 text-[#1A1A1A]">Price <span className="text-rose-400">*</span></label>
                 <div className="relative">
@@ -394,7 +410,7 @@ export default function AdminProducts() {
                       <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#8BA4B8] border-t-transparent"></div>
                     </div>
                   ) : img.url ? (
-                    <Image src={img.url} alt={`Image ${index + 1}`} fill className="object-cover" />
+                    <Image src={img.url} alt={`Image ${index + 1}`} fill sizes="160px" className="object-cover" />
                   ) : null}
                   {!img.uploading && (
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

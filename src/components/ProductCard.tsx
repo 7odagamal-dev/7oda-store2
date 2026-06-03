@@ -3,17 +3,29 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { memo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Product } from '@/lib/supabase';
 import { useWishlist } from '@/context/WishlistContext';
+import CountdownTimer from '@/components/CountdownTimer';
+import QuickView from '@/components/QuickView';
+
+interface FlashSaleInfo {
+  product_id: string;
+  discount_percentage: number;
+  ends_at: string;
+}
 
 interface ProductCardProps {
   product: Product;
   index?: number;
+  flashSale?: FlashSaleInfo;
 }
 
-function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
+function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProps) {
+  const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [quickViewOpen, setQuickViewOpen] = useState(false);
   const { toggleWishlist, isWishlisted } = useWishlist();
 
   const hasDiscount = product.old_price && product.old_price > product.price;
@@ -46,7 +58,7 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
             </svg>
           </button>
           {!imageError && imageSrc ? (
-            <div className="w-full h-full">
+            <div className="relative w-full h-full">
               <Image
                 src={imageSrc}
                 alt={product.name}
@@ -65,16 +77,32 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
             </div>
           )}
 
-          {hasDiscount && (
+          {flashSale ? (
+            <div className="absolute top-3 left-3 z-10 space-y-1">
+              <div className="bg-rose-500 text-white text-[10px] font-semibold px-3 py-1.5 rounded-full tracking-wider uppercase shadow-sm">
+                -{flashSale.discount_percentage}% • FLASH
+              </div>
+              <div className="bg-black/80 text-white text-[10px] font-mono px-3 py-1 rounded-lg shadow-sm text-center">
+                <CountdownTimer endsAt={flashSale.ends_at} compact />
+              </div>
+            </div>
+          ) : hasDiscount ? (
             <div className="absolute top-3 left-3 bg-[#8BA4B8] text-white text-[10px] font-semibold px-3 py-1.5 rounded-full tracking-wider uppercase shadow-sm">
               -{discountPercentage}%
             </div>
-          )}
+          ) : null}
 
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <span className="text-xs tracking-[0.2em] uppercase font-semibold text-[#1A1A1A] border-b-2 border-[#8BA4B8] pb-1">
-              View Details
-            </span>
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <button onClick={e => { e.preventDefault(); e.stopPropagation(); setQuickViewOpen(true); }}
+              className="px-5 py-2.5 bg-[#1A1A1A] text-white text-xs tracking-wider uppercase font-semibold rounded-full hover:bg-[#333] transition-all shadow-sm"
+            >
+              Quick View
+            </button>
+            <button onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/product/${product.slug}`); }}
+              className="px-5 py-2.5 border-2 border-[#1A1A1A] text-[#1A1A1A] text-xs tracking-wider uppercase font-semibold rounded-full hover:bg-[#1A1A1A] hover:text-white transition-all"
+            >
+              Details
+            </button>
           </div>
         </div>
 
@@ -94,6 +122,7 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
           </div>
         </div>
       </Link>
+      <QuickView product={product} isOpen={quickViewOpen} onClose={() => setQuickViewOpen(false)} />
     </div>
   );
 }

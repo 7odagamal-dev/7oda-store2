@@ -61,3 +61,30 @@ export const GLOBAL_TABLES = [
 ] as const;
 
 export type GlobalTable = (typeof GLOBAL_TABLES)[number];
+
+/**
+ * Paginate a Supabase query.
+ * Adds .range() and returns total count in a single round-trip.
+ */
+export async function paginateQuery<T>(
+  query: any,
+  page: number,
+  limit: number,
+): Promise<{ data: T[]; total: number; page: number; limit: number; totalPages: number }> {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  const { data, error, count } = await query
+    .select('*', { count: 'exact', head: false })
+    .range(from, to);
+
+  if (error) throw error;
+
+  return {
+    data: data || [],
+    total: count ?? 0,
+    page,
+    limit,
+    totalPages: Math.ceil((count ?? 0) / limit),
+  };
+}

@@ -64,12 +64,13 @@ export default function FinancePage() {
   const topProducts = useMemo((): TopProduct[] => {
     const map: Record<string, TopProduct> = {};
     orders.forEach(o => {
-      (o.items as any[])?.forEach((item: any) => {
-        if (map[item.name]) {
-          map[item.name].count += item.quantity || 1;
-          map[item.name].revenue += (item.price || 0) * (item.quantity || 1);
+      o.items?.forEach(item => {
+        const name = item.name || 'Unknown';
+        if (map[name]) {
+          map[name].count += item.quantity || 1;
+          map[name].revenue += (item.price || 0) * (item.quantity || 1);
         } else {
-          map[item.name] = { name: item.name, count: item.quantity || 1, revenue: (item.price || 0) * (item.quantity || 1) };
+          map[name] = { name, count: item.quantity || 1, revenue: (item.price || 0) * (item.quantity || 1) };
         }
       });
     });
@@ -80,8 +81,8 @@ export default function FinancePage() {
     try {
       const res = await fetch('/api/admin/orders');
       if (!res.ok) return;
-      const data: Order[] = await res.json();
-      setOrders(data);
+      const response = await res.json();
+      setOrders(response.data || []);
     } catch (error) {
       console.error(error);
     } finally {

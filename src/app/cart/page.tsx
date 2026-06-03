@@ -8,7 +8,7 @@ import { SHIPPING_RANGE } from '@/lib/shipping';
 import { memo, useCallback } from 'react';
 
 function Cart() {
-  const { items, removeItem, updateQuantity, subtotal, discount, total } = useCart();
+  const { items, removeItem, updateQuantity, subtotal, total } = useCart();
   // Show minimum shipping for estimate; exact cost calculated at checkout after governorate selection
   const shippingEstimate = SHIPPING_RANGE.min;
   const finalTotal = total + shippingEstimate;
@@ -82,12 +82,6 @@ function Cart() {
                   <span className="text-[#6B7280]">Subtotal</span>
                   <span className="text-[#1A1A1A] font-medium">EGP {subtotal.toLocaleString()}</span>
                 </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-sm text-[#6B8BA0] font-medium">
-                    <span>Bundle Discount</span>
-                    <span>− EGP {discount.toLocaleString()}</span>
-                  </div>
-                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-[#6B7280]">Shipping</span>
                   <span className="text-[#1A1A1A]">from EGP {shippingEstimate.toLocaleString()}</span>
@@ -136,8 +130,8 @@ const CartItem = memo(({ item, onRemove, onUpdate }: { item: any; onRemove: (id:
           src={item.image || item.product.main_image}
           alt={item.product.name}
           fill
+          sizes="(max-width: 640px) 96px, 96px"
           className="object-cover"
-
         />
       </div>
 
@@ -163,13 +157,13 @@ const CartItem = memo(({ item, onRemove, onUpdate }: { item: any; onRemove: (id:
           <p className="text-[#8BA4B8] font-semibold text-sm mt-1">EGP {item.product.price.toLocaleString()}</p>
         </div>
 
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center border border-[#E5E7EB] rounded-lg bg-white">
+        <div className="flex items-center justify-between mt-2 gap-2">
+          <div className="flex items-center border border-[#E5E7EB] rounded-lg bg-white shrink-0">
             <button onClick={decreaseQty} className="px-3 py-1.5 text-xs text-[#6B7280] hover:text-[#1A1A1A] transition-colors">−</button>
             <span className="px-3 py-1.5 text-xs font-medium border-x border-[#E5E7EB]">{item.quantity}</span>
             <button onClick={increaseQty} className="px-3 py-1.5 text-xs text-[#6B7280] hover:text-[#1A1A1A] transition-colors">+</button>
           </div>
-          <p className="text-xs text-[#9CA3AF]">
+          <p className="text-xs text-[#9CA3AF] whitespace-nowrap">
             Subtotal: EGP {(item.product.price * item.quantity).toLocaleString()}
           </p>
         </div>

@@ -16,7 +16,7 @@ const orderStorage = new StorageService('og-');
 const EGYPTIAN_PHONE_REGEX = /^(010|011|012|015)\d{8}$/;
 
 export default function Checkout() {
-  const { items, subtotal, total, discount, clearCart } = useCart();
+  const { items, subtotal, total, clearCart } = useCart();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -205,7 +205,7 @@ export default function Checkout() {
 
       const summary = {
         subtotal,
-        discount: discount + couponDiscount,
+        discount: couponDiscount,
         shippingCost,
         finalAmount,
         items: items.map(item => ({
@@ -230,7 +230,7 @@ export default function Checkout() {
     } finally {
       setLoading(false);
     }
-  }, [items, formData, finalAmount, clearCart, paymentMethod, subtotal, discount, shippingCost, couponDiscount, couponApplied, couponCode]);
+  }, [items, formData, finalAmount, clearCart, paymentMethod, subtotal, shippingCost, couponDiscount, couponApplied, couponCode]);
 
   if (!mounted) {
     return (
@@ -344,7 +344,7 @@ export default function Checkout() {
               {items.map(item => (
                 <div key={`${item.product.id}-${item.size}`} className="flex gap-4 items-center">
                   <div className="relative w-14 h-18 bg-[#F3F5F8] rounded-lg overflow-hidden">
-                    <Image src={item.image || item.product.main_image} alt={item.product.name} fill className="object-cover" />
+                    <Image src={item.image || item.product.main_image} alt={item.product.name} fill sizes="(max-width: 640px) 56px, 56px" className="object-cover" />
                   </div>
                   <div className="flex-1">
                     <p className="text-xs font-medium text-[#1A1A1A] uppercase">{item.product.name}</p>
@@ -382,7 +382,6 @@ export default function Checkout() {
 
             <div className="mt-5 pt-5 border-t border-[#F0F0F0] space-y-3 text-sm">
               <div className="flex justify-between text-[#6B7280]"><span>Subtotal</span><span>EGP {subtotal.toLocaleString()}</span></div>
-              {discount > 0 && <div className="flex justify-between text-[#6B8BA0] font-medium"><span>Bundle Discount</span><span>− EGP {discount.toLocaleString()}</span></div>}
               {couponDiscount > 0 && <div className="flex justify-between text-emerald-600 font-medium"><span>Coupon Discount</span><span>− EGP {couponDiscount.toLocaleString()}</span></div>}
               <div className="flex justify-between text-[#6B7280]"><span>Shipping</span><span>{shippingCost > 0 ? `EGP ${shippingCost}` : `${SHIPPING_RANGE.min} – ${SHIPPING_RANGE.max} EGP`}</span></div>
               <div className="flex justify-between pt-5 border-t border-[#F0F0F0] text-base font-bold">

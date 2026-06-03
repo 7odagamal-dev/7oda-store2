@@ -54,7 +54,7 @@ export function OrderSuccess({
             {orderSummary.items.map((item: OrderSummaryData['items'][number], idx: number) => (
               <div key={idx} className="flex gap-3 items-center border-b border-[#E5E7EB] pb-2">
                 <div className="relative w-10 h-12 bg-[#F3F5F8] rounded overflow-hidden flex-shrink-0">
-                  {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" />}
+                  {item.image && <Image src={item.image} alt={item.name} fill sizes="(max-width: 640px) 40px, 40px" className="object-cover" />}
                 </div>
                 <div className="flex-1 text-xs">
                   <p className="text-[#1A1A1A] font-medium uppercase">{item.name}</p>

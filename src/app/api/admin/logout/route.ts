@@ -13,8 +13,15 @@ export async function POST(req: NextRequest) {
   response.cookies.set('og-admin-auth', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 0,  // immediately expire
+    sameSite: 'strict',
+    maxAge: 0,
+    path: '/',
+  });
+  response.cookies.set('csrf-token', '', {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 0,
     path: '/',
   });
   return response;

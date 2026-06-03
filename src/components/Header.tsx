@@ -4,6 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
@@ -11,8 +13,11 @@ import { usePathname } from 'next/navigation';
 export default function Header() {
   const pathname = usePathname();
   const { itemCount } = useCart();
+  const { theme, toggleTheme } = useTheme();
+  const { user, signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   const isAdminPage = pathname?.startsWith('/admin');
@@ -25,6 +30,13 @@ export default function Header() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [mounted]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const close = () => setUserMenuOpen(false);
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, [userMenuOpen]);
 
   if (isAdminPage) return null;
 
@@ -87,7 +99,13 @@ export default function Header() {
           </nav>
 
           {/* Wishlist + Cart + Mobile Toggle */}
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4">
+            {/* Theme Toggle */}
+            <button onClick={toggleTheme} className="text-[#6B7280] hover:text-[#1A1A1A] transition-colors duration-300" aria-label="Toggle theme">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+              </svg>
+            </button>
             {/* Wishlist Icon */}
             <Link href="/wishlist" className="relative text-[#6B7280] hover:text-[#1A1A1A] transition-colors duration-300" aria-label="Wishlist">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">
@@ -112,6 +130,45 @@ export default function Header() {
                 )}
               </AnimatePresence>
             </Link>
+
+            {/* User Icon */}
+            <div className="relative">
+              {user ? (
+                <>
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="text-[#6B7280] hover:text-[#1A1A1A] transition-colors"
+                    aria-label="Account"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                    </svg>
+                  </button>
+                  <AnimatePresence>
+                    {userMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-[#E5E7EB] py-2 z-50"
+                      >
+                        <div className="px-4 py-2 text-xs text-[#6B7280] border-b border-[#E5E7EB] truncate">{user.email}</div>
+                        <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#1A1A1A] hover:bg-[#F8F9FB] transition-colors">My Account</Link>
+                        <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#1A1A1A] hover:bg-[#F8F9FB] transition-colors">Order History</Link>
+                        <button onClick={signOut} className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-[#F8F9FB] transition-colors">Sign Out</button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
+              ) : (
+                <Link href="/auth/login" className="text-[#6B7280] hover:text-[#1A1A1A] transition-colors" aria-label="Sign in">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                  </svg>
+                </Link>
+              )}
+            </div>
 
             {/* Mobile menu button */}
             <button

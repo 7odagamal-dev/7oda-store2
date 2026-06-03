@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getStoreContext } from '@/lib/store-context';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { createClient } from '@/lib/supabase-server';
+import { calculateShippingCost } from '@/lib/shipping';
 
 const VALID_PAYMENT_METHODS = ['cash_on_delivery', 'online_transfer', 'paymob'] as const;
 type PaymentMethod = (typeof VALID_PAYMENT_METHODS)[number];
@@ -25,7 +27,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { items, customer_name, phone, governorate, city, address, notes, payment_method, shipping_cost, coupon_code } = body;
+    const { items, customer_name, phone, governorate, city, address, notes, payment_method, coupon_code } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
@@ -45,6 +47,14 @@ export async function POST(req: NextRequest) {
       : 'cash_on_delivery';
 
     const { storeId } = await getStoreContext(req);
+
+    // ── Capture user_id if logged in ──
+    let userId: string | null = null
+    try {
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      userId = user?.id || null
+    } catch {}
 
     // ── Fetch products WITH store isolation ──
     const productIds = items.map((item: CheckoutItem) => item.product_id);
@@ -122,7 +132,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const shippingCost = shipping_cost || 100;
+    const shippingCost = calculateShippingCost(governorate);
     const finalTotal = calculatedTotal - couponDiscount + shippingCost;
 
     const arabicToLatin: Record<string, string> = {
@@ -148,9 +158,10 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Step 1: Create order FIRST ──
-    const orderData = {
+    const orderData: Record<string, unknown> = {
       store_id: storeId,
       display_id: generateDisplayId(orderItems),
+      ...(userId ? { user_id: userId } : {}),
       customer_name,
       phone: cleanPhone,
       governorate,
@@ -182,20 +193,21 @@ export async function POST(req: NextRequest) {
     });
 
     if (reserveError) {
-      // Rollback: delete orphan order
+      console.error('[Checkout] Stock reservation failed (run schema.sql to deploy reserve_order_stock RPC):', reserveError.message);
       await supabaseAdmin.from('orders').delete().eq('id', order.id);
       return NextResponse.json({
-        error: 'Failed to reserve stock',
+        error: 'Failed to reserve stock. Ensure the database schema is deployed.',
       }, { status: 409 });
     }
 
-    // ── Step 3: Increment coupon usage ──
+    // ── Step 3: Atomic coupon usage increment (race-condition-safe) ──
     if (couponRecord) {
-      const cr = couponRecord as { id: string; used_count: number };
-      await supabaseAdmin
-        .from('coupons')
-        .update({ used_count: (cr.used_count || 0) + 1 })
-        .eq('id', cr.id);
+      const cr = couponRecord as { id: string };
+      const { error: couponIncrError } = await supabaseAdmin
+        .rpc('atomic_increment_coupon', { p_coupon_id: cr.id });
+      if (couponIncrError) {
+        console.error('[Checkout] Failed to increment coupon usage:', couponIncrError.message);
+      }
     }
 
     return NextResponse.json({ success: true, orderId: order.id }, { status: 201 });

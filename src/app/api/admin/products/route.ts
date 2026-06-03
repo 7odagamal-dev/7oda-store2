@@ -44,12 +44,33 @@ export async function GET(req: NextRequest) {
   if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    let query = supabaseAdmin.from('products').select('*');
-    if (session.storeId) query = filterByStore(query, session.storeId);
-    const { data, error } = await query.order('created_at', { ascending: false });
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
+    const search = searchParams.get('search') || '';
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
+    let query = supabaseAdmin
+      .from('products')
+      .select('*', { count: 'exact', head: false });
+    if (session.storeId) query = filterByStore(query, session.storeId);
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,category.ilike.%${search}%`);
+    }
+
+    const { data, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+    return NextResponse.json({
+      data: data || [],
+      total: count ?? 0,
+      page,
+      limit,
+      totalPages: Math.ceil((count ?? 0) / limit),
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });

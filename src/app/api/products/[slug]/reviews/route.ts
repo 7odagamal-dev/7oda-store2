@@ -49,7 +49,7 @@ export async function POST(
     const { slug } = await params;
     const { storeId } = await getStoreContext(request);
     const body = await request.json();
-    const { name, rating, comment } = body;
+    const { name, rating, comment, image } = body;
 
     if (!name?.trim() || !comment?.trim()) {
       return NextResponse.json({ error: 'Name and comment are required' }, { status: 400 });
@@ -74,7 +74,14 @@ export async function POST(
 
     const { error } = await supabase
       .from('reviews')
-      .insert({ product_id: product.id, name: name.trim(), rating: parsedRating, comment: comment.trim(), store_id: storeId });
+      .insert({
+        product_id: product.id,
+        name: name.trim(),
+        rating: parsedRating,
+        comment: comment.trim(),
+        image: image?.trim().slice(0, 500) || null,
+        store_id: storeId,
+      });
 
     if (error) throw error;
 

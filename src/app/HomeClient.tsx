@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import type { Product } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
+import RecentlyViewed from '@/components/RecentlyViewed';
 
 export default function HomeClient({ products }: { products: Product[] }) {
   return (
@@ -100,8 +101,8 @@ export default function HomeClient({ products }: { products: Product[] }) {
                 src="/images/logo.jpeg"
                 alt="OG Brand"
                 fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover transition-transform duration-700 group-hover:scale-105"
-
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#8BA4B8]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </motion.div>
@@ -130,8 +131,9 @@ export default function HomeClient({ products }: { products: Product[] }) {
           >
             Explore Collection
           </Link>
-        </motion.div>
-      </section>
+      </motion.div>
+    </section>
+      <RecentlyViewed />
     </div>
   );
 }

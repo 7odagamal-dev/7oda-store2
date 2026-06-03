@@ -73,7 +73,7 @@ export async function DELETE(req: NextRequest) {
       message: 'Message deleted successfully' 
     }, { status: 200 });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error deleting message:', err);
     return NextResponse.json({ 
       success: false, 

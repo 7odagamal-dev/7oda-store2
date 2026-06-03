@@ -57,8 +57,9 @@ export default function AdminMessages() {
       if (!res.ok) throw new Error(data?.error || 'Failed to delete');
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
       alert('Message deleted');
-    } catch (error: any) {
-      alert('Delete failed: ' + error.message);
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : 'Unknown error';
+      alert('Delete failed: ' + errMsg);
     }
   };
 
@@ -102,9 +103,9 @@ export default function AdminMessages() {
         )}
       </div>
 
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-wrap gap-4 mb-6">
         <input type="text" placeholder="Search messages..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 px-4 py-3 bg-white border border-[#E5E7EB] rounded-xl text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none text-sm transition-all" />
+          className="flex-1 min-w-[200px] px-4 py-3 bg-white border border-[#E5E7EB] rounded-xl text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none text-sm transition-all" />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
           className="px-4 py-3 bg-white border border-[#E5E7EB] rounded-xl text-[#1A1A1A] focus:border-[#8BA4B8] focus:outline-none text-sm transition-all">
           <option value="all">All</option>

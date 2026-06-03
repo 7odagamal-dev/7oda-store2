@@ -9,12 +9,42 @@ export async function GET(req: NextRequest) {
   const session = await getAdminSession(req);
   if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  let query = supabaseAdmin.from('orders').select('*');
-  if (session.storeId) query = filterByStore(query, session.storeId);
-  const { data, error } = await query.order('created_at', { ascending: false });
+  const { searchParams } = new URL(req.url);
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
+  const search = searchParams.get('search') || '';
+  const status = searchParams.get('status') || '';
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  try {
+    let query = supabaseAdmin
+      .from('orders')
+      .select('*', { count: 'exact', head: false });
+    if (session.storeId) query = filterByStore(query, session.storeId);
+    if (search) {
+      query = query.or(`customer_name.ilike.%${search}%,phone.ilike.%${search}%,display_id.ilike.%${search}%`);
+    }
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+    return NextResponse.json({
+      data: data || [],
+      total: count ?? 0,
+      page,
+      limit,
+      totalPages: Math.ceil((count ?? 0) / limit),
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function PUT(req: NextRequest) {
@@ -56,7 +86,7 @@ export async function PUT(req: NextRequest) {
         order_id: id,
         items: JSON.stringify(items),
       });
-    } catch (e) { console.error(`Failed to release stock for cancelled order ${id}:`, e); }
+    } catch (e) { console.error(`[Orders] Failed to release stock for cancelled order ${id} (run schema.sql to deploy the RPC):`, e); }
   }
 
   if (current.status === 'pending' && status && status !== 'cancelled' && !current.paymob_txn_id && current.items) {
@@ -67,7 +97,7 @@ export async function PUT(req: NextRequest) {
         order_id: id,
         items: JSON.stringify(items),
       });
-    } catch (e) { console.error(`Failed to commit stock for confirmed order ${id}:`, e); }
+    } catch (e) { console.error(`[Orders] Failed to commit stock for confirmed order ${id} (run schema.sql to deploy the RPC):`, e); }
   }
 
   return NextResponse.json(data);
@@ -99,7 +129,7 @@ export async function DELETE(req: NextRequest) {
       message: 'Order deleted successfully' 
     }, { status: 200 });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error deleting order:', err);
     return NextResponse.json({ 
       success: false, 
