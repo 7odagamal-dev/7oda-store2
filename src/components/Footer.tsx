@@ -2,25 +2,25 @@ import Link from 'next/link';
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-[#E5E7EB] pt-16 pb-8">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
+    <footer className="bg-card border-t border-border pt-[var(--space-3xl)] pb-[var(--space-2xl)]">
+      <div className="fsa-container">
         {/* Top Section */}
-        <div className="grid grid-cols-2 md:grid-cols-12 gap-6 md:gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-12 gap-[var(--space-lg)] md:gap-[var(--space-xl)] mb-[var(--space-3xl)]">
           {/* Brand — full width on mobile */}
           <div className="col-span-2 md:col-span-4">
             <Link href="/" className="inline-flex flex-col items-start">
-              <span className="text-3xl font-bold tracking-[0.3em] text-[#1A1A1A] font-[family-name:var(--font-playfair)]">
+              <span className="text-[var(--text-3xl)] font-bold tracking-[0.3em] text-foreground font-[family-name:var(--font-playfair)]">
                 OG
               </span>
-              <span className="text-[10px] tracking-[0.25em] text-[#9CA3AF] uppercase mt-1">
+              <span className="text-[var(--text-xs)] tracking-[0.25em] text-secondary uppercase mt-1">
                 Old Gold
               </span>
             </Link>
-            <p className="mt-5 text-sm text-[#6B7280] leading-relaxed max-w-xs">
+            <p className="mt-[var(--space-lg)] text-[var(--text-sm)] text-secondary leading-relaxed max-w-xs">
               Premium clothing brand offering elegant and timeless fashion pieces for the modern individual.
             </p>
             {/* Social Links */}
-            <div className="flex gap-4 mt-6">
+            <div className="flex gap-[var(--space-md)] mt-[var(--space-lg)]">
               <a
                 href="https://www.instagram.com/og.oldgold?igsh=bzlvMDhnejFzbWMy&utm_source=qr"
                 target="_blank"
@@ -51,7 +51,7 @@ export default function Footer() {
             <h4 className="text-xs font-semibold tracking-[0.2em] text-[#1A1A1A] uppercase mb-5">
               Quick Links
             </h4>
-            <nav className="flex flex-col gap-3">
+            <nav className="flex flex-col gap-[var(--space-sm)]">
               {[
                 { href: '/shop', label: 'Shop All' },
                 { href: '/about', label: 'Our Story' },
@@ -61,7 +61,7 @@ export default function Footer() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="inline-block py-1 text-sm text-[#6B7280] hover:text-[#1A1A1A] transition-colors duration-200"
+                  className="inline-block py-[var(--space-xs)] text-[var(--text-sm)] text-secondary hover:text-foreground transition-colors duration-200"
                 >
                   {link.label}
                 </Link>
@@ -86,7 +86,7 @@ export default function Footer() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="inline-block py-1 text-sm text-[#6B7280] hover:text-[#1A1A1A] transition-colors duration-200"
+                  className="inline-block py-[var(--space-xs)] text-[var(--text-sm)] text-secondary hover:text-foreground transition-colors duration-200"
                 >
                   {link.label}
                 </Link>
@@ -96,13 +96,13 @@ export default function Footer() {
 
           {/* Contact */}
           <div className="col-span-2 md:col-span-3 mt-2 md:mt-0">
-            <h4 className="text-xs font-semibold tracking-[0.2em] text-[#1A1A1A] uppercase mb-5">
+            <h4 className="text-[var(--text-xs)] font-semibold tracking-[0.2em] text-foreground uppercase mb-[var(--space-lg)]">
               Contact
             </h4>
-            <p className="text-sm text-[#6B7280]">Alexandria, Egypt</p>
+            <p className="text-[var(--text-sm)] text-secondary">Alexandria, Egypt</p>
             <a
               href="mailto:contact@oldgold.life"
-              className="text-sm text-[#8BA4B8] hover:text-[#6B8BA0] transition-colors mt-2 inline-block py-1"
+              className="text-[var(--text-sm)] text-accent hover:text-accent-deep transition-colors mt-[var(--space-sm)] inline-block py-[var(--space-xs)]"
             >
               contact@oldgold.life
             </a>
@@ -110,8 +110,8 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-[#F0F0F0] text-center">
-          <p className="text-xs text-[#9CA3AF] tracking-wider">
+        <div className="pt-[var(--space-xl)] border-t border-border-light text-center">
+          <p className="text-[var(--text-xs)] text-secondary tracking-wider">
             © 2026 OG — Old Gold. All rights reserved.
           </p>
         </div>

@@ -1,43 +1,185 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   FSA — Fluid Scaling Algorithm
+   Formula: clamp(min, calc(min + (max - min) * (100vw - 320px) / 1280), max)
+   Viewport range: 320px – 1600px
+   ========================================================================== */
 :root {
---background: #F8F9FB;
---foreground: #1A1A1A;
---secondary: #6B7280;
---accent: #8BA4B8;
---accent-deep: #6B8BA0;
---accent-light: #C8D9E6;
---card: #FFFFFF;
---card-hover: #F3F5F8;
---border: #E5E7EB;
---border-light: #F0F0F0;
---shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
---shadow-md: 0 4px 20px rgba(0,0,0,0.06);
---shadow-lg: 0 10px 40px rgba(0,0,0,0.08);
+  /* --- Colors (unchanged) --- */
+  --background: #F8F9FB;
+  --foreground: #1A1A1A;
+  --secondary: #6B7280;
+  --accent: #8BA4B8;
+  --accent-deep: #6B8BA0;
+  --accent-light: #C8D9E6;
+  --card: #FFFFFF;
+  --card-hover: #F3F5F8;
+  --border: #E5E7EB;
+  --border-light: #F0F0F0;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,0.08);
+
+  /* --- FSA Fluid Type Scale (factor 1.25) --- */
+  --text-xs: clamp(0.64rem, calc(0.64rem + 0.11 * (100vw - 320px) / 1280), 0.75rem);
+  --text-sm: clamp(0.8rem, calc(0.8rem + 0.075 * (100vw - 320px) / 1280), 0.875rem);
+  --text-base: clamp(1rem, calc(1rem + 0.125 * (100vw - 320px) / 1280), 1.125rem);
+  --text-lg: clamp(1.25rem, calc(1.25rem + 0.25 * (100vw - 320px) / 1280), 1.5rem);
+  --text-xl: clamp(1.563rem, calc(1.563rem + 0.437 * (100vw - 320px) / 1280), 2rem);
+  --text-2xl: clamp(1.953rem, calc(1.953rem + 0.547 * (100vw - 320px) / 1280), 2.5rem);
+  --text-3xl: clamp(2.441rem, calc(2.441rem + 0.809 * (100vw - 320px) / 1280), 3.25rem);
+  --text-4xl: clamp(3.052rem, calc(3.052rem + 0.948 * (100vw - 320px) / 1280), 4rem);
+
+  /* --- FSA Fluid Spacing Scale (factor 1.5) --- */
+  --space-xs: clamp(0.25rem, calc(0.25rem + 0.25 * (100vw - 320px) / 1280), 0.5rem);
+  --space-sm: clamp(0.5rem, calc(0.5rem + 0.5 * (100vw - 320px) / 1280), 1rem);
+  --space-md: clamp(1rem, calc(1rem + 0.5 * (100vw - 320px) / 1280), 1.5rem);
+  --space-lg: clamp(1.5rem, calc(1.5rem + 1 * (100vw - 320px) / 1280), 2.5rem);
+  --space-xl: clamp(2rem, calc(2rem + 1.5 * (100vw - 320px) / 1280), 3.5rem);
+  --space-2xl: clamp(3rem, calc(3rem + 2 * (100vw - 320px) / 1280), 5rem);
+  --space-3xl: clamp(4rem, calc(4rem + 3 * (100vw - 320px) / 1280), 7rem);
+
+  /* --- FSA Container --- */
+  --container-max: 1280px;
+  --container-padding: var(--space-md);
+
+  /* --- FSA Admin --- */
+  --sidebar-width: clamp(220px, 18vw, 280px);
+  --sidebar-collapsed: 0px;
+
+  /* --- FSA Border Radius --- */
+  --radius-sm: clamp(0.375rem, calc(0.375rem + 0.125 * (100vw - 320px) / 1280), 0.5rem);
+  --radius-md: clamp(0.5rem, calc(0.5rem + 0.25 * (100vw - 320px) / 1280), 0.75rem);
+  --radius-lg: clamp(0.75rem, calc(0.75rem + 0.25 * (100vw - 320px) / 1280), 1rem);
+  --radius-xl: clamp(1rem, calc(1rem + 0.5 * (100vw - 320px) / 1280), 1.5rem);
 }
 
 .dark {
---background: #0F1115;
---foreground: #E5E7EB;
---secondary: #9CA3AF;
---accent: #8BA4B8;
---accent-deep: #6B8BA0;
---accent-light: #2D3748;
---card: #1A1D24;
---card-hover: #252830;
---border: #2D3748;
---border-light: #252830;
---muted: #6B7280;
---button-bg: #374151;
---skeleton: #2D3748;
---shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
---shadow-md: 0 4px 20px rgba(0,0,0,0.3);
---shadow-lg: 0 10px 40px rgba(0,0,0,0.4);
+  --background: #0F1115;
+  --foreground: #E5E7EB;
+  --secondary: #9CA3AF;
+  --accent: #8BA4B8;
+  --accent-deep: #6B8BA0;
+  --accent-light: #2D3748;
+  --card: #1A1D24;
+  --card-hover: #252830;
+  --border: #2D3748;
+  --border-light: #252830;
+  --muted: #6B7280;
+  --button-bg: #374151;
+  --skeleton: #2D3748;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.3);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,0.4);
+}
+
+/* ==========================================================================
+   Tailwind v4 Theme — maps FSA variables to Tailwind utility classes
+   ========================================================================== */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-light: var(--accent-light);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-border: var(--border);
+  --color-border-light: var(--border-light);
+  --font-playfair: var(--font-playfair);
+  --font-inter: var(--font-inter);
+
+  /* FSA Fluid Font Sizes */
+  --font-size-fluid-xs: var(--text-xs);
+  --font-size-fluid-sm: var(--text-sm);
+  --font-size-fluid-base: var(--text-base);
+  --font-size-fluid-lg: var(--text-lg);
+  --font-size-fluid-xl: var(--text-xl);
+  --font-size-fluid-2xl: var(--text-2xl);
+  --font-size-fluid-3xl: var(--text-3xl);
+  --font-size-fluid-4xl: var(--text-4xl);
+
+  /* FSA Fluid Spacing */
+  --spacing-fluid-xs: var(--space-xs);
+  --spacing-fluid-sm: var(--space-sm);
+  --spacing-fluid-md: var(--space-md);
+  --spacing-fluid-lg: var(--space-lg);
+  --spacing-fluid-xl: var(--space-xl);
+  --spacing-fluid-2xl: var(--space-2xl);
+  --spacing-fluid-3xl: var(--space-3xl);
+
+  /* FSA Fluid Border Radius */
+  --radius-fluid-sm: var(--radius-sm);
+  --radius-fluid-md: var(--radius-md);
+  --radius-fluid-lg: var(--radius-lg);
+  --radius-fluid-xl: var(--radius-xl);
+}
+
+/* ==========================================================================
+   FSA Utility Classes
+   ========================================================================== */
+/* Fluid container — centers content with fluid padding */
+.fsa-container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
+}
+
+/* Fluid section padding */
+.fsa-section {
+  padding-top: var(--space-2xl);
+  padding-bottom: var(--space-2xl);
+}
+
+/* Fluid grid with auto-fit columns */
+.fsa-grid {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--column-min, 280px)), 1fr));
+}
+
+.fsa-grid-2 {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+
+.fsa-grid-4 {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+
+/* Fluid card */
+.fsa-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+}
+
+/* Fluid button base */
+.fsa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+  transition: all 0.3s ease;
+  touch-action: manipulation;
+  min-height: 44px;
 }
 
 /* ==========================================================================
    Dark mode overrides for hardcoded Tailwind arbitrary colors
-   These match the exact compiled class names from Tailwind v4
    ========================================================================== */
 .dark .bg-\[\#F8F9FB\] { background-color: #0F1115 !important; }
 .dark .bg-\[\#F3F5F8\] { background-color: #252830 !important; }
@@ -72,20 +214,15 @@
 .dark .border-\[\#C6DFD4\] { border-color: #2D3748 !important; }
 
 .dark .divide-\[\#F0F0F0\] > :not(:last-child) { border-color: #252830 !important; }
-
 .dark .ring-\[\#E5E7EB\] { --tw-ring-color: #2D3748 !important; }
 .dark .ring-\[\#8BA4B8\] { --tw-ring-color: #7A93A8 !important; }
 .dark .ring-\[\#8BA4B8\]\/30 { --tw-ring-color: rgba(139,164,184,0.30) !important; }
-
 .dark .accent-\[\#8BA4B8\] { accent-color: #7A93A8 !important; }
-
 .dark .stroke-\[\#6B7280\] { stroke: #9CA3AF !important; }
-
 .dark .from-\[\#8BA4B8\]\/10 { --tw-gradient-from: rgba(139,164,184,0.08) !important; }
 .dark .from-\[\#E5E7EB\] { --tw-gradient-from: #2D3748 !important; }
 .dark .via-\[\#F3F5F8\] { --tw-gradient-via: #252830 !important; }
 .dark .to-\[\#E5E7EB\] { --tw-gradient-to: #2D3748 !important; }
-
 .dark .hover\:bg-\[\#F3F5F8\]:hover { background-color: #2D3748 !important; }
 .dark .hover\:bg-\[\#E5E7EB\]:hover { background-color: #374151 !important; }
 .dark .hover\:bg-\[\#333\]:hover { background-color: #4B5563 !important; }
@@ -96,18 +233,13 @@
 .dark .hover\:bg-\[\#F9FAFB\]:hover { background-color: #1A1D24 !important; }
 .dark .hover\:bg-\[\#c9a432\]:hover { background-color: #b8962e !important; }
 .dark .hover\:bg-\[\#5A7A8F\]:hover { background-color: #4A6A7F !important; }
-
 .dark .hover\:text-\[\#1A1A1A\]:hover { color: #E5E7EB !important; }
 .dark .hover\:text-\[\#6B8BA0\]:hover { color: #8BA4B8 !important; }
-
 .dark .hover\:border-\[\#8BA4B8\]:hover { border-color: #7A93A8 !important; }
 .dark .hover\:border-\[\#8BA4B8\]\/30:hover { border-color: rgba(139,164,184,0.30) !important; }
-
 .dark .focus\:border-\[\#8BA4B8\]:focus { border-color: #7A93A8 !important; }
 .dark .focus\:ring-\[\#8BA4B8\]:focus { --tw-ring-color: #7A93A8 !important; }
-
 .dark .group-hover\:text-\[\#8BA4B8\]:is(:where(.group):hover *) { color: #A0C4D4 !important; }
-
 .dark ::-webkit-scrollbar-thumb { background: #4B5563 !important; }
 .dark ::selection { background: rgba(139, 164, 184, 0.15) !important; }
 .dark .glass {
@@ -115,77 +247,61 @@
   border-color: rgba(255, 255, 255, 0.06) !important;
 }
 
-@theme inline {
---color-background: var(--background);
---color-foreground: var(--foreground);
---color-secondary: var(--secondary);
---color-accent: var(--accent);
---color-accent-deep: var(--accent-deep);
---color-accent-light: var(--accent-light);
---color-card: var(--card);
---color-card-hover: var(--card-hover);
---color-border: var(--border);
---color-border-light: var(--border-light);
---font-playfair: var(--font-playfair);
---font-inter: var(--font-inter);
-}
-
+/* ==========================================================================
+   Base Styles
+   ========================================================================== */
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
 body {
-background: var(--background);
-color: var(--foreground);
-font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
--webkit-font-smoothing: antialiased;
--moz-osx-font-smoothing: grayscale;
-letter-spacing: 0.01em;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: var(--text-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0.01em;
 }
 
+h1 { font-size: var(--text-3xl); }
+h2 { font-size: var(--text-2xl); }
+h3 { font-size: var(--text-xl); }
+h4 { font-size: var(--text-lg); }
+h5 { font-size: var(--text-base); }
+h6 { font-size: var(--text-sm); }
+
 h1, h2, h3, h4, h5, h6 {
-font-family: var(--font-playfair), Georgia, serif;
-font-weight: 500;
-letter-spacing: 0.02em;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 /* Smooth scrollbar */
-::-webkit-scrollbar {
-width: 6px;
-}
-::-webkit-scrollbar-track {
-background: transparent;
-}
-::-webkit-scrollbar-thumb {
-background: #D1D5DB;
-border-radius: 3px;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
 
-/* Premium selection */
 ::selection {
-background: rgba(139, 164, 184, 0.2);
-color: var(--foreground);
+  background: rgba(139, 164, 184, 0.2);
+  color: var(--foreground);
 }
 
 /* Glass utility */
 .glass {
-background: rgba(255,255,255,0.7);
-backdrop-filter: blur(20px);
--webkit-backdrop-filter: blur(20px);
-border: 1px solid rgba(0,0,0,0.06);
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0,0,0,0.06);
 }
 
-/* Smooth transitions globally for interactive elements */
 a, button {
-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1.2);
 }
 
-/* Subtle image treatment */
-img {
-image-rendering: auto;
-}
+img { image-rendering: auto; }
 
-/* Shimmer animation for loading skeletons */
+/* Shimmer */
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
@@ -195,11 +311,31 @@ image-rendering: auto;
 }
 
 /* ==========================================================================
+   FSA Admin Layout Utilities
+   ========================================================================== */
+.fsa-admin-layout {
+  display: flex;
+  min-height: 100vh;
+}
+.fsa-sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 30;
+}
+.fsa-admin-main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  min-width: 0;
+}
+
+/* ==========================================================================
    RTL Support
    ========================================================================== */
-[dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
-  --tw-space-x-reverse: 1;
-}
+[dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) { --tw-space-x-reverse: 1; }
 [dir="rtl"] .left-0 { left: auto; right: 0; }
 [dir="rtl"] .right-0 { right: auto; left: 0; }
 [dir="rtl"] .left-3 { left: auto; right: 0.75rem; }
@@ -211,17 +347,16 @@ image-rendering: auto;
 [dir="rtl"] .-translate-x-full { transform: translateX(100%); }
 [dir="rtl"] .translate-x-\[-50\%\] { transform: translateX(50%); }
 [dir="rtl"] .md\:translate-x-0 { transform: translateX(0); }
+[dir="rtl"] .fsa-sidebar { left: auto; right: 0; }
+[dir="rtl"] .fsa-admin-main { margin-left: 0; margin-right: var(--sidebar-width); }
 
 /* ==========================================================================
    Touch Device Support
    ========================================================================== */
-/* Always show overlay buttons on touch devices */
 @media (hover: none) and (pointer: coarse) {
   .touch-hide { display: none; }
   .touch-show { display: flex; }
 }
-
-/* Minimum touch target 44x44px */
 .touch-target {
   min-width: 44px;
   min-height: 44px;
@@ -237,22 +372,15 @@ image-rendering: auto;
   justify-content: center;
 }
 
-/* ==========================================================================
-   Focus-visible for accessibility
-   ========================================================================== */
+/* Focus-visible */
 *:focus-visible {
   outline: 2px solid #8BA4B8;
   outline-offset: 2px;
   border-radius: 4px;
 }
-/* Remove default focus for mouse users */
-*:focus:not(:focus-visible) {
-  outline: none;
-}
+*:focus:not(:focus-visible) { outline: none; }
 
-/* ==========================================================================
-   Safe Area Insets for notched phones
-   ========================================================================== */
+/* Safe Area */
 @supports (padding-top: env(safe-area-inset-top)) {
   .safe-top { padding-top: env(safe-area-inset-top); }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
@@ -261,71 +389,36 @@ image-rendering: auto;
   .safe-pad-x { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
 }
 
-/* ==========================================================================
-   Luxury Custom Cursor Rules
-   ========================================================================== */
-/* hide default cursor when custom mouse is active on desktop */
+/* Cursor */
 @media (pointer: fine) {
-.hide-default-cursor,
-.hide-default-cursor * {
-cursor: none !important;
-}
+  .hide-default-cursor,
+  .hide-default-cursor * { cursor: none !important; }
 }
 
-/* ==========================================================================
-   Prevent horizontal overflow on very small screens
-   ========================================================================== */
-html {
-  overflow-x: hidden;
-}
-body {
-  overflow-x: hidden;
-}
+/* Overflow */
+html, body { overflow-x: hidden; }
 
-/* ==========================================================================
-   Touch interaction helpers
-   ========================================================================== */
-/* Disable text selection on interactive elements during touch */
+/* Touch helpers */
 .touch-action-manipulation {
   touch-action: manipulation;
   -webkit-touch-callout: none;
 }
+button, a, select, input, textarea { touch-action: manipulation; }
+* { -webkit-tap-highlight-color: transparent; }
 
-/* Prevent double-tap zoom on buttons and links */
-button, a, select, input, textarea {
-  touch-action: manipulation;
-}
-
-/* Remove tap highlight color on mobile */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Long-press hint animation */
 @keyframes long-press-hint {
   0% { transform: scale(1); opacity: 0; }
   50% { opacity: 1; }
   100% { transform: scale(1.15); opacity: 0.8; }
 }
-.long-press-active {
-  animation: long-press-hint 0.5s ease-out forwards;
-}
+.long-press-active { animation: long-press-hint 0.5s ease-out forwards; }
 
-/* Pull-to-close indicator */
 .swipe-indicator {
-  width: 32px;
-  height: 4px;
+  width: 32px; height: 4px;
   border-radius: 2px;
   background: #D1D5DB;
   margin: 0 auto;
 }
 
-/* Show touch-only elements on coarse pointer devices */
-@media (pointer: coarse) {
-  .touch-only { display: flex; }
-  .no-touch { display: none; }
-}
-@media (pointer: fine) {
-  .touch-only { display: none; }
-  .no-touch { display: block; }
-}
+@media (pointer: coarse) { .touch-only { display: flex; } .no-touch { display: none; } }
+@media (pointer: fine) { .touch-only { display: none; } .no-touch { display: block; } }

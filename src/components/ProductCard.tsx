@@ -50,14 +50,14 @@ function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProp
     <div>
       <Link href={`/product/${product.slug}`} className="block group">
         <div
-          className="relative overflow-hidden rounded-2xl bg-[#F3F5F8] mb-4 shadow-sm group-hover:shadow-md transition-shadow duration-500"
+          className="relative overflow-hidden rounded-[var(--radius-xl)] bg-card-hover mb-[var(--space-md)] shadow-sm group-hover:shadow-md transition-shadow duration-500"
           style={{ aspectRatio: '3/4' }}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => { setIsHovered(false); setTouchToggled(false); }}
         >
           <button
             onClick={e => { e.preventDefault(); e.stopPropagation(); toggleWishlist(product.slug); }}
-            className="absolute top-3 right-3 z-10 touch-target w-9 h-9 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-all"
+            className="absolute top-[var(--space-sm)] right-[var(--space-sm)] z-10 touch-target w-9 h-9 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-all"
             aria-label={isWishlisted(product.slug) ? 'Remove from wishlist' : 'Add to wishlist'}
           >
             <svg
@@ -86,16 +86,16 @@ function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProp
             </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-[#F3F5F8]">
-              <div className="text-center text-[#9CA3AF]">
-                <div className="text-4xl mb-2 opacity-50">✧</div>
-                <span className="text-xs tracking-wider uppercase">No Image</span>
+              <div className="text-center text-secondary">
+                <div className="text-[var(--text-4xl)] mb-[var(--space-sm)] opacity-50">✧</div>
+                <span className="text-[var(--text-xs)] tracking-wider uppercase">No Image</span>
               </div>
             </div>
           )}
 
           {flashSale ? (
-            <div className="absolute top-3 left-3 z-10 space-y-1">
-              <div className="bg-rose-500 text-white text-[10px] font-semibold px-3 py-1.5 rounded-full tracking-wider uppercase shadow-sm">
+            <div className="absolute top-[var(--space-sm)] left-[var(--space-sm)] z-10 space-y-[var(--space-xs)]">
+              <div className="bg-rose-500 text-white text-[var(--text-xs)] font-semibold px-[var(--space-sm)] py-[var(--space-xs)] rounded-full tracking-wider uppercase shadow-sm">
                 -{flashSale.discount_percentage}% • FLASH
               </div>
               <div className="bg-black/80 text-white text-[10px] font-mono px-3 py-1 rounded-lg shadow-sm text-center">
@@ -103,35 +103,35 @@ function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProp
               </div>
             </div>
           ) : hasDiscount ? (
-            <div className="absolute top-3 left-3 bg-[#8BA4B8] text-white text-[10px] font-semibold px-3 py-1.5 rounded-full tracking-wider uppercase shadow-sm">
+            <div className="absolute top-[var(--space-sm)] left-[var(--space-sm)] bg-accent text-white text-[var(--text-xs)] font-semibold px-[var(--space-sm)] py-[var(--space-xs)] rounded-full tracking-wider uppercase shadow-sm">
               -{discountPercentage}%
             </div>
           ) : null}
 
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center gap-2 sm:gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 touch-show">
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center gap-[var(--space-sm)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 touch-show">
             <button onClick={e => { e.preventDefault(); e.stopPropagation(); setQuickViewOpen(true); }}
-              className="px-4 sm:px-5 py-2.5 bg-[#1A1A1A] text-white text-[10px] sm:text-xs tracking-wider uppercase font-semibold rounded-full hover:bg-[#333] transition-all shadow-sm"
+              className="px-[var(--space-md)] py-[var(--space-sm)] bg-foreground text-background text-[var(--text-xs)] tracking-wider uppercase font-semibold rounded-full hover:bg-[#333] transition-all shadow-sm"
             >
               Quick View
             </button>
             <button onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/product/${product.slug}`); }}
-              className="px-4 sm:px-5 py-2.5 border-2 border-[#1A1A1A] text-[#1A1A1A] text-[10px] sm:text-xs tracking-wider uppercase font-semibold rounded-full hover:bg-[#1A1A1A] hover:text-white transition-all"
+              className="px-[var(--space-md)] py-[var(--space-sm)] border-2 border-foreground text-foreground text-[var(--text-xs)] tracking-wider uppercase font-semibold rounded-full hover:bg-foreground hover:text-background transition-all"
             >
               Details
             </button>
           </div>
         </div>
 
-        <div className="space-y-1 px-1">
-          <h3 className="text-sm font-medium text-[#1A1A1A] tracking-wide truncate font-[family-name:var(--font-playfair)]">
+        <div className="space-y-[var(--space-xs)] px-[var(--space-xs)]">
+          <h3 className="text-[var(--text-sm)] font-medium text-foreground tracking-wide truncate font-[family-name:var(--font-playfair)]">
             {product.name}
           </h3>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-[#1A1A1A]">
+          <div className="flex items-center gap-[var(--space-sm)]">
+            <span className="text-[var(--text-sm)] font-semibold text-foreground">
               EGP {product.price?.toLocaleString("en-US") || 0}
             </span>
             {hasDiscount && (
-              <span className="text-xs text-[#9CA3AF] line-through">
+              <span className="text-[var(--text-xs)] text-secondary line-through">
                 EGP {product.old_price?.toLocaleString("en-US")}
               </span>
             )}

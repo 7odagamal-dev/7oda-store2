@@ -62,11 +62,11 @@ export default function Header() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         isScrolled
-          ? 'glass shadow-sm py-3'
-          : 'bg-transparent py-5'
+          ? 'glass shadow-sm py-[var(--space-sm)]'
+          : 'bg-transparent py-[var(--space-lg)]'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
+      <div className="fsa-container">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex flex-col items-start group">
@@ -82,7 +82,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-[var(--space-xl)]">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
@@ -109,7 +109,7 @@ export default function Header() {
           </nav>
 
           {/* Wishlist + Cart + Mobile Toggle */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-[var(--space-xs)] sm:gap-[var(--space-sm)]">
             {/* Theme Toggle */}
             <button onClick={toggleTheme} className="touch-target text-[#6B7280] hover:text-[#1A1A1A] transition-colors duration-300" aria-label="Toggle theme">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -161,12 +161,12 @@ export default function Header() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 ltr:right-0 rtl:left-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-[#E5E7EB] py-2 z-50"
+                        className="absolute right-0 ltr:right-0 rtl:left-0 top-full mt-2 w-48 bg-card rounded-[var(--radius-xl)] shadow-lg border border-border py-[var(--space-sm)] z-50"
                       >
-                        <div className="px-4 py-2 text-xs text-[#6B7280] border-b border-[#E5E7EB] truncate">{user.email}</div>
-                        <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#1A1A1A] hover:bg-[#F8F9FB] transition-colors">My Account</Link>
-                        <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#1A1A1A] hover:bg-[#F8F9FB] transition-colors">Order History</Link>
-                        <button onClick={signOut} className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-[#F8F9FB] transition-colors">Sign Out</button>
+                        <div className="px-[var(--space-md)] py-[var(--space-sm)] text-[var(--text-xs)] text-secondary border-b border-border truncate">{user.email}</div>
+                        <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block px-[var(--space-md)] py-[var(--space-sm)] text-[var(--text-sm)] text-foreground hover:bg-[#F8F9FB] transition-colors">My Account</Link>
+                        <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block px-[var(--space-md)] py-[var(--space-sm)] text-[var(--text-sm)] text-foreground hover:bg-[#F8F9FB] transition-colors">Order History</Link>
+                        <button onClick={signOut} className="block w-full text-left px-[var(--space-md)] py-[var(--space-sm)] text-[var(--text-sm)] text-red-600 hover:bg-[#F8F9FB] transition-colors">Sign Out</button>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -208,14 +208,14 @@ export default function Header() {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="md:hidden glass border-t border-[#F0F0F0] overflow-hidden"
           >
-            <nav className="flex flex-col py-4 px-6">
+            <nav className="flex flex-col py-[var(--space-md)] px-[var(--space-lg)]">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`py-4 text-sm tracking-[0.15em] uppercase font-medium border-b border-[#F0F0F0] last:border-0 transition-colors ${
-                    pathname === link.href ? 'text-[#6B8BA0]' : 'text-[#6B7280] hover:text-[#1A1A1A]'
+                  className={`py-[var(--space-md)] text-[var(--text-sm)] tracking-[0.15em] uppercase font-medium border-b border-border-light last:border-0 transition-colors ${
+                    pathname === link.href ? 'text-accent-deep' : 'text-secondary hover:text-foreground'
                   }`}
                 >
                   {link.label}

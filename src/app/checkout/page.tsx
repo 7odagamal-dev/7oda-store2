@@ -234,18 +234,18 @@ export default function Checkout() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen pt-24 flex items-center justify-center bg-[#F8F9FB]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#8BA4B8] border-t-transparent"></div>
+      <div className="min-h-screen pt-24 flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-accent border-t-transparent"></div>
       </div>
     );
   }
 
   if (items.length === 0 && !orderComplete) {
     return (
-      <div className="min-h-screen pt-24 flex items-center justify-center bg-[#F8F9FB]">
+      <div className="min-h-screen pt-24 flex items-center justify-center bg-background">
         <div className="text-center">
-          <h1 className="text-2xl font-[family-name:var(--font-playfair)] text-[#1A1A1A] mb-3">Cart is Empty</h1>
-          <Link href="/shop" className="text-[#8BA4B8] underline underline-offset-4 text-sm">Go Back to Shop</Link>
+          <h1 className="text-[var(--text-2xl)] font-[family-name:var(--font-playfair)] text-foreground mb-[var(--space-sm)]">Cart is Empty</h1>
+          <Link href="/shop" className="text-accent underline underline-offset-4 text-[var(--text-sm)]">Go Back to Shop</Link>
         </div>
       </div>
     );
@@ -264,22 +264,22 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-20 bg-[#F8F9FB]">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
+    <div className="min-h-screen pt-24 pb-[var(--space-3xl)] bg-background">
+      <div className="fsa-container">
         <motion.h1
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl font-[family-name:var(--font-playfair)] text-[#1A1A1A] mb-10 tracking-wide"
+          className="text-[var(--text-3xl)] font-[family-name:var(--font-playfair)] text-foreground mb-[var(--space-2xl)] tracking-wide"
         >
           Checkout
         </motion.h1>
-        <div className="grid lg:grid-cols-2 gap-12 lg:items-start">
-          <form onSubmit={handleSubmit} className="space-y-7">
-            <section className="bg-white border border-[#E5E7EB] p-4 sm:p-7 rounded-2xl shadow-sm">
-              <h2 className="text-lg font-semibold text-[#1A1A1A] mb-6 pb-3 border-b border-[#F0F0F0] font-[family-name:var(--font-playfair)]">
+        <div className="grid lg:grid-cols-2 gap-[var(--space-3xl)] lg:items-start">
+          <form onSubmit={handleSubmit} className="space-y-[var(--space-xl)]">
+            <section className="bg-card border border-border p-[var(--space-md)] sm:p-[var(--space-xl)] rounded-[var(--radius-xl)] shadow-sm">
+              <h2 className="text-[var(--text-lg)] font-semibold text-foreground mb-[var(--space-lg)] pb-[var(--space-sm)] border-b border-border-light font-[family-name:var(--font-playfair)]">
                 Shipping Details
               </h2>
-              <div className="grid gap-4">
+              <div className="grid gap-[var(--space-md)]">
                 <input type="text" name="customer_name" required value={formData.customer_name} onChange={handleChange}
                   className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] focus:border-[#8BA4B8] focus:outline-none rounded-xl text-sm text-[#1A1A1A] placeholder-[#9CA3AF] transition-all"
                   placeholder="Full Name" />
@@ -301,26 +301,26 @@ export default function Checkout() {
               </div>
             </section>
 
-            <section className="bg-white border border-[#E5E7EB] p-4 sm:p-7 rounded-2xl shadow-sm">
-              <h2 className="text-lg font-semibold text-[#1A1A1A] mb-5 pb-3 border-b border-[#F0F0F0] font-[family-name:var(--font-playfair)]">
+            <section className="bg-card border border-border p-[var(--space-md)] sm:p-[var(--space-xl)] rounded-[var(--radius-xl)] shadow-sm">
+              <h2 className="text-[var(--text-lg)] font-semibold text-foreground mb-[var(--space-lg)] pb-[var(--space-sm)] border-b border-border-light font-[family-name:var(--font-playfair)]">
                 Payment Method
               </h2>
-              <div className="space-y-3">
+              <div className="space-y-[var(--space-sm)]">
                 {[
                   { value: 'online_transfer', label: 'Online Transfer (Vodafone Cash / InstaPay)' },
                   { value: 'paymob', label: 'Pay with Card (Visa / Mastercard)' },
                   { value: 'cash_on_delivery', label: 'Cash on Delivery' },
                 ].map(option => (
-                  <label key={option.value} className="flex items-center gap-3 cursor-pointer group p-3 rounded-xl hover:bg-[#F8F9FB] transition-all">
+                  <label key={option.value} className="flex items-center gap-[var(--space-sm)] cursor-pointer group p-[var(--space-sm)] rounded-[var(--radius-xl)] hover:bg-background transition-all">
                     <input
                       type="radio"
                       name="payment_method"
                       value={option.value}
                       checked={paymentMethod === option.value}
                       onChange={() => setPaymentMethod(option.value as any)}
-                      className="w-4 h-4 accent-[#8BA4B8]"
+                      className="w-4 h-4 accent-accent"
                     />
-                    <span className="text-sm text-[#1A1A1A] group-hover:text-[#8BA4B8] transition-colors">
+                    <span className="text-[var(--text-sm)] text-foreground group-hover:text-accent transition-colors">
                       {option.label}
                     </span>
                   </label>
@@ -332,39 +332,39 @@ export default function Checkout() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-5 bg-[#8BA4B8] text-white font-semibold text-sm tracking-wider uppercase rounded-xl hover:bg-[#6B8BA0] transition-all shadow-sm hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+              className="w-full py-[var(--space-lg)] bg-accent text-white font-semibold text-[var(--text-sm)] tracking-wider uppercase rounded-[var(--radius-xl)] hover:bg-accent-deep transition-all shadow-sm hover:shadow-md active:scale-[0.98] disabled:opacity-50"
             >
               {loading ? 'Processing...' : 'Place Order'}
             </button>
           </form>
 
-          <aside className="bg-white border border-[#E5E7EB] p-4 sm:p-7 rounded-2xl md:sticky md:top-28 shadow-sm">
-            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-6 font-[family-name:var(--font-playfair)]">Your Order</h2>
-            <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
+          <aside className="bg-card border border-border p-[var(--space-md)] sm:p-[var(--space-xl)] rounded-[var(--radius-xl)] md:sticky md:top-28 shadow-sm">
+            <h2 className="text-[var(--text-lg)] font-semibold text-foreground mb-[var(--space-lg)] font-[family-name:var(--font-playfair)]">Your Order</h2>
+            <div className="space-y-[var(--space-md)] max-h-80 overflow-y-auto pr-2">
               {items.map(item => (
-                <div key={`${item.product.id}-${item.size}`} className="flex gap-4 items-center">
-                  <div className="relative w-14 h-18 bg-[#F3F5F8] rounded-lg overflow-hidden">
+                <div key={`${item.product.id}-${item.size}`} className="flex gap-[var(--space-md)] items-center">
+                  <div className="relative w-14 h-18 bg-card-hover rounded-[var(--radius-md)] overflow-hidden">
                     <Image src={item.image || item.product.main_image} alt={item.product.name} fill sizes="(max-width: 640px) 56px, 56px" className="object-cover" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-[#1A1A1A] uppercase">{item.product.name}</p>
-                    <p className="text-[10px] text-[#9CA3AF]">Size: {item.size} | Qty: {item.quantity}</p>
+                    <p className="text-[var(--text-xs)] font-medium text-foreground uppercase">{item.product.name}</p>
+                    <p className="text-[var(--text-xs)] text-secondary">Size: {item.size} | Qty: {item.quantity}</p>
                   </div>
-                  <span className="text-xs font-medium text-[#1A1A1A]">EGP {(item.product.price * item.quantity).toLocaleString()}</span>
+                  <span className="text-[var(--text-xs)] font-medium text-foreground">EGP {(item.product.price * item.quantity).toLocaleString()}</span>
                 </div>
               ))}
             </div>
             {/* Coupon */}
-            <div className="mt-5 pt-5 border-t border-[#F0F0F0]">
+            <div className="mt-[var(--space-lg)] pt-[var(--space-lg)] border-t border-border-light">
               {couponApplied ? (
-                <div className="flex items-center justify-between bg-[#F0F7F4] rounded-xl px-4 py-3">
+                <div className="flex items-center justify-between bg-card rounded-[var(--radius-xl)] px-[var(--space-md)] py-[var(--space-sm)]">
                   <div>
-                    <span className="text-xs font-semibold text-emerald-700">
+                    <span className="text-[var(--text-xs)] font-semibold text-emerald-700">
                       {couponInfo?.type === 'percentage' ? `${couponInfo.value}% OFF` : `EGP ${couponDiscount.toLocaleString()} OFF`}
                     </span>
-                    <p className="text-sm font-bold text-[#1A1A1A]">− EGP {couponDiscount.toLocaleString()}</p>
+                    <p className="text-[var(--text-sm)] font-bold text-foreground">− EGP {couponDiscount.toLocaleString()}</p>
                   </div>
-                  <button onClick={removeCoupon} className="text-xs text-[#9CA3AF] hover:text-rose-500 underline">Remove</button>
+                  <button onClick={removeCoupon} className="text-[var(--text-xs)] text-secondary hover:text-rose-500 underline">Remove</button>
                 </div>
               ) : (
                 <div className="flex gap-2">
@@ -380,13 +380,13 @@ export default function Checkout() {
               {couponError && <p className="text-xs text-rose-500 mt-1.5">{couponError}</p>}
             </div>
 
-            <div className="mt-5 pt-5 border-t border-[#F0F0F0] space-y-3 text-sm">
-              <div className="flex justify-between text-[#6B7280]"><span>Subtotal</span><span>EGP {subtotal.toLocaleString()}</span></div>
+            <div className="mt-[var(--space-lg)] pt-[var(--space-lg)] border-t border-border-light space-y-[var(--space-sm)] text-[var(--text-sm)]">
+              <div className="flex justify-between text-secondary"><span>Subtotal</span><span>EGP {subtotal.toLocaleString()}</span></div>
               {couponDiscount > 0 && <div className="flex justify-between text-emerald-600 font-medium"><span>Coupon Discount</span><span>− EGP {couponDiscount.toLocaleString()}</span></div>}
-              <div className="flex justify-between text-[#6B7280]"><span>Shipping</span><span>{shippingCost > 0 ? `EGP ${shippingCost}` : `${SHIPPING_RANGE.min} – ${SHIPPING_RANGE.max} EGP`}</span></div>
-              <div className="flex justify-between pt-5 border-t border-[#F0F0F0] text-base font-bold">
-                <span className="text-[#1A1A1A]">TOTAL</span>
-                <span className="text-[#8BA4B8]">EGP {finalAmount.toLocaleString()}</span>
+              <div className="flex justify-between text-secondary"><span>Shipping</span><span>{shippingCost > 0 ? `EGP ${shippingCost}` : `${SHIPPING_RANGE.min} – ${SHIPPING_RANGE.max} EGP`}</span></div>
+              <div className="flex justify-between pt-[var(--space-lg)] border-t border-border-light text-[var(--text-base)] font-bold">
+                <span className="text-foreground">TOTAL</span>
+                <span className="text-accent">EGP {finalAmount.toLocaleString()}</span>
               </div>
             </div>
           </aside>

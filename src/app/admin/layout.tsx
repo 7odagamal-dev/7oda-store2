@@ -78,7 +78,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] text-[#1A1A1A] flex">
+    <div className="fsa-admin-layout bg-background text-foreground">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -89,43 +89,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-[#E5E7EB] z-30 transform transition-transform duration-300 shadow-sm
+        className={`fsa-sidebar bg-card border-r border-border z-30 transform transition-transform duration-300 shadow-sm
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0`}
       >
-        <div className="p-6 border-b border-[#F0F0F0]">
+        <div className="p-[var(--space-lg)] border-b border-border-light">
           <Link href="/admin" className="flex flex-col items-start">
-            <span className="text-2xl font-bold tracking-[0.3em] text-[#1A1A1A] font-[family-name:var(--font-playfair)]">OG</span>
-            <span className="text-[10px] tracking-[0.25em] text-[#9CA3AF] uppercase mt-0.5">Admin Panel</span>
+            <span className="text-[var(--text-2xl)] font-bold tracking-[0.3em] text-foreground font-[family-name:var(--font-playfair)]">OG</span>
+            <span className="text-[var(--text-xs)] tracking-[0.25em] text-secondary uppercase mt-0.5">Admin Panel</span>
           </Link>
         </div>
 
-        <nav className="px-3 py-4 space-y-1">
+        <nav className="px-[var(--space-sm)] py-[var(--space-md)] space-y-[var(--space-xs)]">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                className={`flex items-center gap-[var(--space-sm)] px-[var(--space-md)] py-[var(--space-sm)] rounded-[var(--radius-xl)] transition-all duration-200 ${
                   isActive
-                    ? 'bg-[#8BA4B8] text-white shadow-sm'
-                    : 'text-[#6B7280] hover:text-[#1A1A1A] hover:bg-[#F3F5F8]'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-secondary hover:text-foreground hover:bg-card-hover'
                 }`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                 </svg>
-                <span className="text-sm font-medium">{item.label}</span>
+                <span className="text-[var(--text-sm)] font-medium">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="absolute bottom-6 left-4 right-4">
+        <div className="absolute bottom-[var(--space-lg)] left-[var(--space-md)] right-[var(--space-md)]">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-[#E5E7EB] text-[#6B7280] hover:text-[#1A1A1A] hover:border-[#8BA4B8] rounded-xl transition-all text-sm"
+            className="w-full flex items-center justify-center gap-[var(--space-sm)] px-[var(--space-md)] py-[var(--space-sm)] border border-border text-secondary hover:text-foreground hover:border-accent rounded-[var(--radius-xl)] transition-all text-[var(--text-sm)]"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
@@ -136,22 +136,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
+      <div className="fsa-admin-main flex flex-col min-h-screen">
         {/* Mobile top bar */}
-        <header className="md:hidden flex items-center gap-4 px-4 py-3 bg-white border-b border-[#E5E7EB] sticky top-0 z-10">
+        <header className="md:hidden flex items-center gap-[var(--space-md)] px-[var(--space-md)] py-[var(--space-sm)] bg-card border-b border-border sticky top-0 z-10">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="text-[#6B7280] hover:text-[#1A1A1A]"
+            className="text-secondary hover:text-foreground"
             aria-label="Open menu"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </button>
-          <span className="font-bold tracking-widest text-[#1A1A1A] text-sm font-[family-name:var(--font-playfair)]">OG ADMIN</span>
+          <span className="font-bold tracking-widest text-foreground text-[var(--text-sm)] font-[family-name:var(--font-playfair)]">OG ADMIN</span>
         </header>
 
-        <main className="flex-1 p-4 md:p-8">
+        <main className="flex-1 p-[var(--space-md)] md:p-[var(--space-xl)]">
           {children}
         </main>
       </div>

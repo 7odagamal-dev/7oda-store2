@@ -71,7 +71,7 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-[90] bg-white sm:rounded-2xl overflow-hidden shadow-2xl max-w-2xl w-full sm:max-h-[90vh] flex flex-col sm:flex-row"
+            className="fixed inset-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-[90] bg-card sm:rounded-[var(--radius-xl)] overflow-hidden shadow-2xl max-w-2xl w-full sm:max-h-[90vh] flex flex-col sm:flex-row"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -83,10 +83,10 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
               </svg>
             </button>
 
-            <div className="w-full sm:w-1/2 bg-[#F3F5F8] relative aspect-[4/5] sm:aspect-auto sm:h-auto sm:max-h-[90vh]">
+            <div className="w-full sm:w-1/2 bg-card-hover relative aspect-[4/5] sm:aspect-auto sm:h-auto sm:max-h-[90vh]">
               <Image src={selectedImage} alt={product.name} fill sizes="(max-width: 640px) calc(100vw - 32px), 336px" className="object-cover" />
               {hasDiscount && (
-                <div className="absolute top-3 left-3 bg-[#8BA4B8] text-white text-[10px] font-semibold px-3 py-1.5 rounded-full">-{discountPercentage}%</div>
+                <div className="absolute top-[var(--space-sm)] left-[var(--space-sm)] bg-accent text-white text-[var(--text-xs)] font-semibold px-[var(--space-sm)] py-[var(--space-xs)] rounded-full">-{discountPercentage}%</div>
               )}
               {availableImages.length > 1 && (
                 <div className="absolute bottom-3 left-3 right-3 flex gap-2">
@@ -101,26 +101,26 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
               )}
             </div>
 
-            <div className="w-full sm:w-1/2 p-4 sm:p-6 flex flex-col overflow-y-auto">
-              <h2 className="text-lg font-bold font-[family-name:var(--font-playfair)]">{product.name}</h2>
-              <div className="flex items-center gap-3 mt-2">
-                <span className="text-xl font-semibold">EGP {product.price?.toLocaleString()}</span>
-                {hasDiscount && <span className="text-sm text-[#9CA3AF] line-through">EGP {product.old_price?.toLocaleString()}</span>}
+            <div className="w-full sm:w-1/2 p-[var(--space-md)] sm:p-[var(--space-lg)] flex flex-col overflow-y-auto">
+              <h2 className="text-[var(--text-lg)] font-bold font-[family-name:var(--font-playfair)]">{product.name}</h2>
+              <div className="flex items-center gap-[var(--space-sm)] mt-[var(--space-sm)]">
+                <span className="text-[var(--text-xl)] font-semibold">EGP {product.price?.toLocaleString()}</span>
+                {hasDiscount && <span className="text-[var(--text-sm)] text-secondary line-through">EGP {product.old_price?.toLocaleString()}</span>}
               </div>
 
               {product.description && (
-                <p className="text-xs text-[#6B7280] mt-3 leading-relaxed line-clamp-3">{product.description}</p>
+                <p className="text-[var(--text-xs)] text-secondary mt-[var(--space-sm)] leading-relaxed line-clamp-3">{product.description}</p>
               )}
 
-              <div className="mt-4">
-                <p className="text-xs font-medium text-[#6B7280] mb-2 uppercase tracking-wider">Size</p>
-                <div className="flex flex-wrap gap-2">
+              <div className="mt-[var(--space-md)]">
+                <p className="text-[var(--text-xs)] font-medium text-secondary mb-[var(--space-sm)] uppercase tracking-wider">Size</p>
+                <div className="flex flex-wrap gap-[var(--space-sm)]">
                   {product.sizes?.map(size => (
                     <button key={size} onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 text-xs font-medium rounded-full border transition-all ${
+                      className={`px-[var(--space-md)] py-[var(--space-sm)] text-[var(--text-xs)] font-medium rounded-full border transition-all ${
                         selectedSize === size
-                          ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
-                          : 'bg-white text-[#6B7280] border-[#E5E7EB] hover:border-[#8BA4B8]'
+                          ? 'bg-foreground text-background border-foreground'
+                          : 'bg-card text-secondary border-border hover:border-accent'
                       }`}
                     >
                       {size}
@@ -129,23 +129,23 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
                 </div>
               </div>
 
-              <div className="mt-4">
-                <p className="text-xs font-medium text-[#6B7280] mb-2 uppercase tracking-wider">Qty</p>
-                <div className="flex items-center border border-[#E5E7EB] rounded-lg w-fit">
-                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="px-3 py-1.5 text-sm hover:bg-[#F3F5F8]">−</button>
-                  <span className="px-4 py-1.5 text-sm font-medium border-x border-[#E5E7EB]">{quantity}</span>
-                  <button onClick={() => setQuantity(q => Math.min(product.stock, q + 1))} className="px-3 py-1.5 text-sm hover:bg-[#F3F5F8]">+</button>
+              <div className="mt-[var(--space-md)]">
+                <p className="text-[var(--text-xs)] font-medium text-secondary mb-[var(--space-sm)] uppercase tracking-wider">Qty</p>
+                <div className="flex items-center border border-border rounded-[var(--radius-md)] w-fit">
+                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--text-sm)] hover:bg-card-hover">−</button>
+                  <span className="px-[var(--space-md)] py-[var(--space-xs)] text-[var(--text-sm)] font-medium border-x border-border">{quantity}</span>
+                  <button onClick={() => setQuantity(q => Math.min(product.stock, q + 1))} className="px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--text-sm)] hover:bg-card-hover">+</button>
                 </div>
               </div>
 
               <button onClick={handleAddToCart} disabled={!selectedSize}
-                className="mt-6 w-full py-3 bg-[#1A1A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#333] transition-all disabled:opacity-50"
+                className="mt-[var(--space-xl)] w-full py-[var(--space-sm)] bg-foreground text-background rounded-[var(--radius-xl)] text-[var(--text-sm)] font-semibold hover:bg-[#333] transition-all disabled:opacity-50"
               >
                 {selectedSize ? `Add to Cart — EGP ${(product.price * quantity).toLocaleString()}` : 'Select a Size'}
               </button>
 
               <button onClick={() => { onClose(); router.push(`/product/${product.slug}`); }}
-                className="mt-2 w-full py-2 text-xs text-[#6B7280] hover:text-[#1A1A1A] transition-all"
+                className="mt-[var(--space-sm)] w-full py-[var(--space-sm)] text-[var(--text-xs)] text-secondary hover:text-foreground transition-all"
               >
                 View Full Details
               </button>

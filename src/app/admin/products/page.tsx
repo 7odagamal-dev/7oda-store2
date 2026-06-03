@@ -225,17 +225,17 @@ export default function AdminProducts() {
   );
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="p-2">
-      <div className="flex gap-2 mb-6">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="p-[var(--space-sm)]">
+      <div className="flex gap-[var(--space-sm)] mb-[var(--space-lg)]">
         <button onClick={() => { setActiveTab('list'); resetForm(); }}
-          className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-all ${
-            activeTab === 'list' ? 'bg-[#8BA4B8] text-white shadow-sm' : 'bg-white border border-[#E5E7EB] text-[#6B7280] hover:border-[#8BA4B8]'
+          className={`px-[var(--space-lg)] py-[var(--space-sm)] rounded-[var(--radius-xl)] font-medium text-[var(--text-sm)] transition-all ${
+            activeTab === 'list' ? 'bg-accent text-white shadow-sm' : 'bg-card border border-border text-secondary hover:border-accent'
           }`}>
           Products ({products.length})
         </button>
         <button onClick={() => { resetForm(); setActiveTab('add'); }}
-          className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-all ${
-            activeTab === 'add' ? 'bg-[#8BA4B8] text-white shadow-sm' : 'bg-white border border-[#E5E7EB] text-[#6B7280] hover:border-[#8BA4B8]'
+          className={`px-[var(--space-lg)] py-[var(--space-sm)] rounded-[var(--radius-xl)] font-medium text-[var(--text-sm)] transition-all ${
+            activeTab === 'add' ? 'bg-accent text-white shadow-sm' : 'bg-card border border-border text-secondary hover:border-accent'
           }`}>
           + {editingProduct ? 'Edit' : 'Add'}
         </button>
@@ -243,44 +243,44 @@ export default function AdminProducts() {
 
       {activeTab === 'list' && (
         <>
-          <div className="relative mb-6">
+          <div className="relative mb-[var(--space-lg)]">
             <input type="text" placeholder="Search products..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full max-w-md px-4 py-3 bg-white border border-[#E5E7EB] rounded-xl text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none text-sm transition-all" />
+              className="w-full max-w-md px-[var(--space-md)] py-[var(--space-sm)] bg-card border border-border rounded-[var(--radius-xl)] text-foreground placeholder-secondary focus:border-accent focus:outline-none text-[var(--text-sm)] transition-all" />
           </div>
           {loading ? (
-            <div className="flex items-center justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-2 border-[#8BA4B8] border-t-transparent"></div></div>
+            <div className="flex items-center justify-center py-[var(--space-3xl)]"><div className="animate-spin rounded-full h-10 w-10 border-2 border-accent border-t-transparent"></div></div>
           ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-20 text-[#9CA3AF]"><div className="text-6xl mb-4">📦</div><p className="text-xl font-[family-name:var(--font-playfair)]">No products found</p></div>
+            <div className="text-center py-[var(--space-3xl)] text-secondary"><div className="text-6xl mb-[var(--space-md)]">📦</div><p className="text-[var(--text-xl)] font-[family-name:var(--font-playfair)]">No products found</p></div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[var(--space-md)]">
               {filteredProducts.map(product => (
-                <div key={product.id} className="bg-white rounded-xl p-4 border border-[#E5E7EB] hover:shadow-md transition-all group">
-                  <div className="relative h-48 bg-[#F3F5F8] rounded-lg mb-3 overflow-hidden">
+                <div key={product.id} className="bg-card rounded-[var(--radius-xl)] p-[var(--space-md)] border border-border hover:shadow-md transition-all group">
+                  <div className="relative h-48 bg-card-hover rounded-[var(--radius-md)] mb-[var(--space-sm)] overflow-hidden">
                     {product.main_image ? (
                       <Image src={product.main_image} alt={product.name} fill sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[#9CA3AF]"><span className="text-4xl">📷</span></div>
+                      <div className="w-full h-full flex items-center justify-center text-secondary"><span className="text-[var(--text-4xl)]">📷</span></div>
                     )}
-                    {product.discount_percentage && (<span className="absolute top-2 right-2 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-full">-{product.discount_percentage}%</span>)}
+                    {product.discount_percentage && (<span className="absolute top-[var(--space-sm)] right-[var(--space-sm)] bg-rose-500 text-white text-[var(--text-xs)] font-bold px-[var(--space-sm)] py-[var(--space-xs)] rounded-full">-{product.discount_percentage}%</span>)}
                   </div>
-                  <h3 className="font-semibold text-[#1A1A1A] mb-1 truncate">{product.name}</h3>
-                  <p className="text-[#6B7280] text-xs mb-2">{product.category}</p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs text-[#6B7280]">Stock:</span>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${product.stock < 3 ? 'bg-rose-500 text-white animate-pulse' : product.stock < 10 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  <h3 className="font-semibold text-foreground mb-[var(--space-xs)] truncate">{product.name}</h3>
+                  <p className="text-secondary text-[var(--text-xs)] mb-[var(--space-sm)]">{product.category}</p>
+                  <div className="flex items-center gap-[var(--space-sm)] mb-[var(--space-sm)]">
+                    <span className="text-[var(--text-xs)] text-secondary">Stock:</span>
+                    <span className={`text-[var(--text-xs)] font-bold px-[var(--space-sm)] py-[var(--space-xs)] rounded-full ${product.stock < 3 ? 'bg-rose-500 text-white animate-pulse' : product.stock < 10 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                       {product.stock}
                     </span>
                     {product.stock < 3 && <span className="text-[9px] text-rose-500 font-bold uppercase tracking-wider">Low stock!</span>}
                   </div>
                   <div className="flex justify-between items-center">
                     <div>
-                      <span className="text-[#8BA4B8] font-bold text-lg">{product.price} EGP</span>
-                      {product.old_price && (<span className="text-[#9CA3AF] text-sm line-through ml-2">{product.old_price}</span>)}
+                      <span className="text-accent font-bold text-[var(--text-lg)]">{product.price} EGP</span>
+                      {product.old_price && (<span className="text-secondary text-[var(--text-sm)] line-through ml-[var(--space-sm)]">{product.old_price}</span>)}
                     </div>
                   </div>
-                  <div className="flex gap-2 mt-3 pt-3 border-t border-[#F0F0F0]">
-                    <button onClick={() => handleEdit(product)} className="flex-1 py-2 bg-[#8BA4B8]/10 text-[#8BA4B8] rounded-lg hover:bg-[#8BA4B8] hover:text-white transition-all text-sm font-medium">✏️ Edit</button>
-                    <button onClick={() => handleDelete(product.id)} className="px-4 py-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition-all">🗑️</button>
+                  <div className="flex gap-[var(--space-sm)] mt-[var(--space-sm)] pt-[var(--space-sm)] border-t border-border-light">
+                    <button onClick={() => handleEdit(product)} className="flex-1 py-[var(--space-sm)] bg-accent/10 text-accent rounded-[var(--radius-md)] hover:bg-accent hover:text-white transition-all text-[var(--text-sm)] font-medium">✏️ Edit</button>
+                    <button onClick={() => handleDelete(product.id)} className="px-[var(--space-md)] py-[var(--space-sm)] bg-rose-50 text-rose-500 rounded-[var(--radius-md)] hover:bg-rose-500 hover:text-white transition-all">🗑️</button>
                   </div>
                 </div>
               ))}
@@ -290,14 +290,14 @@ export default function AdminProducts() {
       )}
 
       {activeTab === 'add' && (
-        <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
-          <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB] shadow-sm space-y-4">
-            <h3 className="text-lg font-[family-name:var(--font-playfair)] text-[#1A1A1A] mb-4">Basic Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="max-w-3xl space-y-[var(--space-lg)]">
+            <div className="bg-card rounded-[var(--radius-xl)] p-[var(--space-lg)] border border-border shadow-sm space-y-[var(--space-md)]">
+              <h3 className="text-[var(--text-lg)] font-[family-name:var(--font-playfair)] text-foreground mb-[var(--space-md)]">Basic Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--space-md)]">
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1A1A1A]">Product Name <span className="text-rose-400">*</span></label>
+                <label className="block text-[var(--text-sm)] font-medium mb-[var(--space-sm)] text-foreground">Product Name <span className="text-rose-400">*</span></label>
                 <input type="text" required value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} placeholder="Enter product name"
-                  className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none text-sm transition-all" />
+                  className="w-full px-[var(--space-md)] py-[var(--space-sm)] bg-background border border-border rounded-[var(--radius-xl)] text-foreground placeholder-secondary focus:border-accent focus:outline-none text-[var(--text-sm)] transition-all" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2 text-[#1A1A1A]">Category <span className="text-rose-400">*</span></label>
@@ -343,71 +343,71 @@ export default function AdminProducts() {
           </div>
 
           {/* Sizes Section */}
-          <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB] shadow-sm">
-            <h3 className="text-lg font-[family-name:var(--font-playfair)] text-[#1A1A1A] mb-1">
+          <div className="bg-card rounded-[var(--radius-xl)] p-[var(--space-lg)] border border-border shadow-sm">
+            <h3 className="text-[var(--text-lg)] font-[family-name:var(--font-playfair)] text-foreground mb-[var(--space-xs)]">
               Sizes
-              <span className="text-[#9CA3AF] text-sm font-normal ml-2">({formData.sizes.length} sizes)</span>
+              <span className="text-secondary text-[var(--text-sm)] font-normal ml-[var(--space-sm)]">({formData.sizes.length} sizes)</span>
             </h3>
-            <div className="flex gap-2 flex-wrap mb-4 mt-4">
+            <div className="flex gap-[var(--space-sm)] flex-wrap mb-[var(--space-md)] mt-[var(--space-md)]">
               {['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'].map(preset => (
                 <button key={preset} type="button" onClick={() => addSize(preset)}
                   disabled={formData.sizes.includes(preset)}
-                  className={`px-4 py-2 text-xs font-medium uppercase rounded-full border transition-all ${
+                  className={`px-[var(--space-md)] py-[var(--space-sm)] text-[var(--text-xs)] font-medium uppercase rounded-full border transition-all ${
                     formData.sizes.includes(preset)
-                      ? 'bg-[#8BA4B8] text-white border-[#8BA4B8]'
-                      : 'bg-white border-[#E5E7EB] text-[#6B7280] hover:border-[#8BA4B8] hover:text-[#8BA4B8]'
+                      ? 'bg-accent text-white border-accent'
+                      : 'bg-card border-border text-secondary hover:border-accent hover:text-accent'
                   }`}>
                   {preset}
                 </button>
               ))}
             </div>
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-[var(--space-sm)] mb-[var(--space-md)]">
               <input type="text" value={newSizeInput} onChange={e => setNewSizeInput(e.target.value.toUpperCase())}
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSize(newSizeInput))}
                 placeholder="Enter custom size..."
-                className="flex-1 px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none text-sm transition-all" />
-              <button type="button" onClick={() => addSize(newSizeInput)} className="px-5 py-3 bg-[#8BA4B8] text-white rounded-xl font-medium text-sm hover:bg-[#6B8BA0] transition-all">Add Size</button>
+                className="flex-1 px-[var(--space-md)] py-[var(--space-sm)] bg-background border border-border rounded-[var(--radius-xl)] text-foreground placeholder-secondary focus:border-accent focus:outline-none text-[var(--text-sm)] transition-all" />
+              <button type="button" onClick={() => addSize(newSizeInput)} className="px-[var(--space-lg)] py-[var(--space-sm)] bg-accent text-white rounded-[var(--radius-xl)] font-medium text-[var(--text-sm)] hover:bg-accent-deep transition-all">Add Size</button>
             </div>
             {formData.sizes.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-[var(--space-sm)]">
                 {formData.sizes.map(size => (
-                  <span key={size} className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#F3F5F8] text-[#1A1A1A] text-sm font-medium rounded-full border border-[#E5E7EB]">
+                  <span key={size} className="inline-flex items-center gap-[var(--space-xs)] px-[var(--space-sm)] py-[var(--space-xs)] bg-card-hover text-foreground text-[var(--text-sm)] font-medium rounded-full border border-border">
                     {size}
-                    <button type="button" onClick={() => removeSize(size)} className="text-[#9CA3AF] hover:text-rose-500 transition-colors text-lg leading-none ml-1">&times;</button>
+                    <button type="button" onClick={() => removeSize(size)} className="text-secondary hover:text-rose-500 transition-colors text-lg leading-none ml-[var(--space-xs)]">&times;</button>
                   </span>
                 ))}
               </div>
             ) : (
-              <p className="text-[#9CA3AF] text-sm">No sizes added. Defaults to M, L, XL.</p>
+              <p className="text-secondary text-[var(--text-sm)]">No sizes added. Defaults to M, L, XL.</p>
             )}
           </div>
 
           {/* Images Section */}
-          <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB] shadow-sm">
-            <h3 className="text-lg font-[family-name:var(--font-playfair)] text-[#1A1A1A] mb-1">
+          <div className="bg-card rounded-[var(--radius-xl)] p-[var(--space-lg)] border border-border shadow-sm">
+            <h3 className="text-[var(--text-lg)] font-[family-name:var(--font-playfair)] text-foreground mb-[var(--space-xs)]">
               Images <span className="text-rose-400">*</span>
-              <span className="text-[#9CA3AF] text-sm font-normal ml-2">({formData.images.length} images)</span>
+              <span className="text-secondary text-[var(--text-sm)] font-normal ml-[var(--space-sm)]">({formData.images.length} images)</span>
             </h3>
             {uploadError && (
-              <div className="mb-4 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-500 text-sm">{uploadError}</div>
+              <div className="mb-[var(--space-md)] px-[var(--space-md)] py-[var(--space-sm)] bg-rose-50 border border-rose-200 rounded-[var(--radius-xl)] text-rose-500 text-[var(--text-sm)]">{uploadError}</div>
             )}
-            <div className="flex gap-3 mb-4">
+            <div className="flex gap-[var(--space-sm)] mb-[var(--space-md)]">
               <input type="url" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleImageUrlAdd())}
                 placeholder="🔗 Paste image URL..."
-                className="flex-1 px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none text-sm transition-all" />
-              <button type="button" onClick={handleImageUrlAdd} className="px-5 py-3 bg-[#8BA4B8] text-white rounded-xl font-medium text-sm hover:bg-[#6B8BA0] transition-all">+ Add</button>
-              <label className="px-5 py-3 bg-[#6B8BA0] text-white rounded-xl font-medium text-sm cursor-pointer hover:bg-[#5A7A8F] transition-all">
+                className="flex-1 px-[var(--space-md)] py-[var(--space-sm)] bg-background border border-border rounded-[var(--radius-xl)] text-foreground placeholder-secondary focus:border-accent focus:outline-none text-[var(--text-sm)] transition-all" />
+              <button type="button" onClick={handleImageUrlAdd} className="px-[var(--space-lg)] py-[var(--space-sm)] bg-accent text-white rounded-[var(--radius-xl)] font-medium text-[var(--text-sm)] hover:bg-accent-deep transition-all">+ Add</button>
+              <label className="px-[var(--space-lg)] py-[var(--space-sm)] bg-accent-deep text-white rounded-[var(--radius-xl)] font-medium text-[var(--text-sm)] cursor-pointer hover:bg-[#5A7A8F] transition-all">
                 📁 Upload
                 <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
               </label>
             </div>
-            <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
+            <div className="grid grid-cols-4 md:grid-cols-6 gap-[var(--space-sm)]">
               {formData.images.map((img, index) => (
-                <div key={img.id} className="relative aspect-square bg-[#F3F5F8] rounded-lg overflow-hidden group border border-[#E5E7EB]">
+                <div key={img.id} className="relative aspect-square bg-card-hover rounded-[var(--radius-md)] overflow-hidden group border border-border">
                   {img.uploading ? (
                     <div className="w-full h-full flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#8BA4B8] border-t-transparent"></div>
+                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-accent border-t-transparent"></div>
                     </div>
                   ) : img.url ? (
                     <Image src={img.url} alt={`Image ${index + 1}`} fill sizes="160px" className="object-cover" />
@@ -417,28 +417,28 @@ export default function AdminProducts() {
                       <button type="button" onClick={() => handleImageRemove(img.id)} className="w-8 h-8 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition-all flex items-center justify-center text-lg">×</button>
                     </div>
                   )}
-                  {index === 0 && !img.uploading && (<span className="absolute bottom-1 left-1 bg-[#8BA4B8] text-white text-[10px] font-bold px-2 py-0.5 rounded">Main</span>)}
+                  {index === 0 && !img.uploading && (<span className="absolute bottom-[var(--space-xs)] left-[var(--space-xs)] bg-accent text-white text-[var(--text-xs)] font-bold px-[var(--space-sm)] py-[var(--space-xs)] rounded">Main</span>)}
                 </div>
               ))}
               {formData.images.length === 0 && (
-                <div className="col-span-4 md:col-span-6 h-32 flex items-center justify-center text-[#9CA3AF] border-2 border-dashed border-[#E5E7EB] rounded-xl">
-                  <div className="text-center"><div className="text-3xl mb-2">📷</div><p className="text-sm">Add at least one image</p></div>
+                <div className="col-span-4 md:col-span-6 h-32 flex items-center justify-center text-secondary border-2 border-dashed border-border rounded-[var(--radius-xl)]">
+                  <div className="text-center"><div className="text-[var(--text-3xl)] mb-[var(--space-sm)]">📷</div><p className="text-[var(--text-sm)]">Add at least one image</p></div>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-[#E5E7EB]">
-            <input type="checkbox" id="is_featured" checked={formData.is_featured} onChange={(e) => setFormData(p => ({ ...p, is_featured: e.target.checked }))} className="w-5 h-5 accent-[#8BA4B8] cursor-pointer" />
-            <label htmlFor="is_featured" className="text-[#1A1A1A] text-sm cursor-pointer">⭐ Feature on homepage</label>
+          <div className="flex items-center gap-[var(--space-sm)] p-[var(--space-md)] bg-card rounded-[var(--radius-xl)] border border-border">
+            <input type="checkbox" id="is_featured" checked={formData.is_featured} onChange={(e) => setFormData(p => ({ ...p, is_featured: e.target.checked }))} className="w-5 h-5 accent-accent cursor-pointer" />
+            <label htmlFor="is_featured" className="text-foreground text-[var(--text-sm)] cursor-pointer">⭐ Feature on homepage</label>
           </div>
 
-          <div className="flex gap-4 pt-4">
+          <div className="flex gap-[var(--space-md)] pt-[var(--space-md)]">
             <button type="submit" disabled={submitting}
-              className="flex-1 py-4 bg-[#8BA4B8] text-white font-semibold rounded-xl hover:bg-[#6B8BA0] transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm">
+              className="flex-1 py-[var(--space-md)] bg-accent text-white font-semibold rounded-[var(--radius-xl)] hover:bg-accent-deep transition-all disabled:opacity-50 flex items-center justify-center gap-[var(--space-sm)] text-[var(--text-sm)]">
               {submitting ? (<><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>Saving...</>) : (<>💾 {editingProduct ? 'Update Product' : 'Add Product'}</>)}
             </button>
-            <button type="button" onClick={() => { resetForm(); setActiveTab('list'); }} className="px-8 py-4 border border-[#E5E7EB] text-[#6B7280] hover:border-[#8BA4B8] hover:text-[#8BA4B8] rounded-xl transition-all text-sm">Cancel</button>
+            <button type="button" onClick={() => { resetForm(); setActiveTab('list'); }} className="px-[var(--space-xl)] py-[var(--space-md)] border border-border text-secondary hover:border-accent hover:text-accent rounded-[var(--radius-xl)] transition-all text-[var(--text-sm)]">Cancel</button>
           </div>
         </form>
       )}
