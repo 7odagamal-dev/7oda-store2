@@ -125,7 +125,7 @@ const CartItem = memo(({ item, onRemove, onUpdate }: { item: any; onRemove: (id:
       exit={{ opacity: 0, y: -10 }}
       className="flex gap-5 p-4 bg-white border border-[#E5E7EB] rounded-xl hover:border-[#8BA4B8]/30 transition-all shadow-sm"
     >
-      <div className="relative w-24 h-32 flex-shrink-0 overflow-hidden rounded-lg bg-[#F3F5F8]">
+      <div className="relative w-20 sm:w-24 h-28 sm:h-32 flex-shrink-0 overflow-hidden rounded-lg bg-[#F3F5F8]">
         <Image
           src={item.image || item.product.main_image}
           alt={item.product.name}
@@ -148,7 +148,7 @@ const CartItem = memo(({ item, onRemove, onUpdate }: { item: any; onRemove: (id:
                 Size: <span className="text-[#1A1A1A] font-medium">{item.size}</span>
               </p>
             </div>
-            <button onClick={handleRemove} className="text-[#D1D5DB] hover:text-red-400 transition-colors p-1">
+            <button onClick={handleRemove} aria-label="Remove item" className="touch-target-sm text-[#D1D5DB] hover:text-red-400 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
               </svg>
@@ -159,9 +159,9 @@ const CartItem = memo(({ item, onRemove, onUpdate }: { item: any; onRemove: (id:
 
         <div className="flex items-center justify-between mt-2 gap-2">
           <div className="flex items-center border border-[#E5E7EB] rounded-lg bg-white shrink-0">
-            <button onClick={decreaseQty} className="px-3 py-1.5 text-xs text-[#6B7280] hover:text-[#1A1A1A] transition-colors">−</button>
-            <span className="px-3 py-1.5 text-xs font-medium border-x border-[#E5E7EB]">{item.quantity}</span>
-            <button onClick={increaseQty} className="px-3 py-1.5 text-xs text-[#6B7280] hover:text-[#1A1A1A] transition-colors">+</button>
+            <button onClick={decreaseQty} aria-label="Decrease quantity" className="touch-target-sm px-3 py-1.5 text-xs text-[#6B7280] hover:text-[#1A1A1A] transition-colors">−</button>
+            <span className="w-8 text-center px-1 py-1.5 text-xs font-medium border-x border-[#E5E7EB]">{item.quantity}</span>
+            <button onClick={increaseQty} aria-label="Increase quantity" className="touch-target-sm px-3 py-1.5 text-xs text-[#6B7280] hover:text-[#1A1A1A] transition-colors">+</button>
           </div>
           <p className="text-xs text-[#9CA3AF] whitespace-nowrap">
             Subtotal: EGP {(item.product.price * item.quantity).toLocaleString()}

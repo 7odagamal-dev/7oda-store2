@@ -9,6 +9,8 @@ import { useWishlist } from '@/context/WishlistContext';
 import CountdownTimer from '@/components/CountdownTimer';
 import QuickView from '@/components/QuickView';
 
+const isTouchDevice = typeof navigator !== 'undefined' && 'ontouchstart' in window;
+
 interface FlashSaleInfo {
   product_id: string;
   discount_percentage: number;
@@ -24,6 +26,7 @@ interface ProductCardProps {
 function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProps) {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
+  const [touchToggled, setTouchToggled] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const { toggleWishlist, isWishlisted } = useWishlist();
@@ -33,7 +36,15 @@ function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProp
     ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
     : 0;
 
-  const imageSrc = isHovered && product.second_image ? product.second_image : product.main_image;
+  const showSecondImage = isHovered || touchToggled;
+  const imageSrc = showSecondImage && product.second_image ? product.second_image : product.main_image;
+
+  const handleImageClick = (e: React.MouseEvent) => {
+    if (!isTouchDevice || !product.second_image) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setTouchToggled(prev => !prev);
+  };
 
   return (
     <div>
@@ -42,11 +53,11 @@ function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProp
           className="relative overflow-hidden rounded-2xl bg-[#F3F5F8] mb-4 shadow-sm group-hover:shadow-md transition-shadow duration-500"
           style={{ aspectRatio: '3/4' }}
           onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
+          onMouseLeave={() => { setIsHovered(false); setTouchToggled(false); }}
         >
           <button
             onClick={e => { e.preventDefault(); e.stopPropagation(); toggleWishlist(product.slug); }}
-            className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-all"
+            className="absolute top-3 right-3 z-10 touch-target w-9 h-9 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-all"
             aria-label={isWishlisted(product.slug) ? 'Remove from wishlist' : 'Add to wishlist'}
           >
             <svg
@@ -58,7 +69,7 @@ function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProp
             </svg>
           </button>
           {!imageError && imageSrc ? (
-            <div className="relative w-full h-full">
+            <div className="relative w-full h-full" onClick={handleImageClick}>
               <Image
                 src={imageSrc}
                 alt={product.name}
@@ -67,6 +78,11 @@ function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProp
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                 onError={() => setImageError(true)}
               />
+              {isTouchDevice && product.second_image && (
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 touch-only bg-black/50 text-white text-[8px] px-2 py-0.5 rounded-full whitespace-nowrap pointer-events-none">
+                  {touchToggled ? 'Tap to see front' : 'Tap to see back'}
+                </div>
+              )}
             </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-[#F3F5F8]">
@@ -92,14 +108,14 @@ function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProp
             </div>
           ) : null}
 
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center gap-2 sm:gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 touch-show">
             <button onClick={e => { e.preventDefault(); e.stopPropagation(); setQuickViewOpen(true); }}
-              className="px-5 py-2.5 bg-[#1A1A1A] text-white text-xs tracking-wider uppercase font-semibold rounded-full hover:bg-[#333] transition-all shadow-sm"
+              className="px-4 sm:px-5 py-2.5 bg-[#1A1A1A] text-white text-[10px] sm:text-xs tracking-wider uppercase font-semibold rounded-full hover:bg-[#333] transition-all shadow-sm"
             >
               Quick View
             </button>
             <button onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/product/${product.slug}`); }}
-              className="px-5 py-2.5 border-2 border-[#1A1A1A] text-[#1A1A1A] text-xs tracking-wider uppercase font-semibold rounded-full hover:bg-[#1A1A1A] hover:text-white transition-all"
+              className="px-4 sm:px-5 py-2.5 border-2 border-[#1A1A1A] text-[#1A1A1A] text-[10px] sm:text-xs tracking-wider uppercase font-semibold rounded-full hover:bg-[#1A1A1A] hover:text-white transition-all"
             >
               Details
             </button>

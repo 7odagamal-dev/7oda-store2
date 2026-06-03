@@ -15,6 +15,7 @@ export default function NewsletterPopup() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
+  const [swipeStart, setSwipeStart] = useState(0);
 
   useEffect(() => {
     if (isAdmin || typeof window === 'undefined') return;
@@ -92,11 +93,14 @@ export default function NewsletterPopup() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.95 }}
             className="fixed bottom-0 sm:bottom-8 sm:right-8 left-0 sm:left-auto z-[70] mx-4 sm:mx-0"
+            onTouchStart={(e) => setSwipeStart(e.touches[0].clientY)}
+            onTouchMove={(e) => { if (e.touches[0].clientY - swipeStart > 100) handleDismiss(); }}
           >
             <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-[#E5E7EB] max-w-sm w-full sm:w-[380px] overflow-hidden">
               <button
                 onClick={handleDismiss}
-                className="absolute top-4 right-4 text-[#9CA3AF] hover:text-[#1A1A1A] transition-colors z-10"
+                aria-label="Close newsletter"
+                className="touch-target absolute top-3 right-3 text-[#9CA3AF] hover:text-[#1A1A1A] transition-colors z-10"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

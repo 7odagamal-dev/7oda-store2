@@ -118,7 +118,7 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
   const availableImages = [product.main_image, product.second_image, product.third_image, product.fourth_image].filter(Boolean) as string[];
 
   return (
-    <div className="min-h-screen pt-24 pb-12 px-6 sm:px-8 lg:px-10 bg-[#F8F9FB]">
+    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-8 lg:px-10 bg-[#F8F9FB]">
       <div className="max-w-7xl mx-auto">
         <div className="lg:grid lg:grid-cols-2 lg:gap-x-16">
           {/* Product Images */}
@@ -134,7 +134,7 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
                 <button
                   key={index}
                   onClick={() => setSelectedImage(img)}
-                  className={`relative w-16 h-20 lg:w-full lg:h-24 shrink-0 rounded-xl overflow-hidden transition-all duration-300 ${
+                  className={`relative w-16 h-20 lg:w-full lg:h-24 shrink-0 rounded-xl overflow-hidden transition-all duration-300 touch-target-sm ${
                     selectedImage === img
                       ? 'ring-2 ring-[#8BA4B8] ring-offset-2'
                       : 'ring-1 ring-[#E5E7EB] hover:ring-[#8BA4B8]'
@@ -146,7 +146,7 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
             </div>
 
             {/* Main Image */}
-            <div className="relative w-full rounded-2xl overflow-hidden bg-[#F3F5F8] order-1 lg:order-2 shadow-sm" style={{ aspectRatio: '3/4' }}>
+            <div className="relative w-full rounded-2xl overflow-hidden bg-[#F3F5F8] order-1 lg:order-2 shadow-sm group" style={{ aspectRatio: '3/4' }}>
               <AnimatePresence mode="wait">
                 {selectedImage && (
                   <motion.div
@@ -158,6 +158,9 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
                     className="w-full h-full"
                   >
                     <ImageZoom src={selectedImage} alt={product.name} />
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 touch-only bg-black/50 text-white text-[10px] px-3 py-1.5 rounded-full whitespace-nowrap pointer-events-none">
+                      Hold to zoom • Tap images to compare
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -200,7 +203,8 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
                 <div className="flex items-center inline-flex border border-[#E5E7EB] rounded-xl bg-white shadow-sm">
                   <button
                     onClick={decrementQuantity}
-                    className="px-4 py-3 text-[#6B7280] hover:text-[#1A1A1A] hover:bg-[#F3F5F8] transition-colors rounded-l-xl"
+                    aria-label="Decrease quantity"
+                    className="touch-target-sm px-4 py-3 text-[#6B7280] hover:text-[#1A1A1A] hover:bg-[#F3F5F8] transition-colors rounded-l-xl"
                   >
                     −
                   </button>
@@ -209,7 +213,8 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
                   </span>
                   <button
                     onClick={incrementQuantity}
-                    className="px-4 py-3 text-[#6B7280] hover:text-[#1A1A1A] hover:bg-[#F3F5F8] transition-colors rounded-r-xl"
+                    aria-label="Increase quantity"
+                    className="touch-target-sm px-4 py-3 text-[#6B7280] hover:text-[#1A1A1A] hover:bg-[#F3F5F8] transition-colors rounded-r-xl"
                   >
                     +
                   </button>

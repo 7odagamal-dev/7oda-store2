@@ -144,7 +144,7 @@ function HeroSection() {
   const opacity = useTransform(scrollY, [0, 300], [1, 0.3]);
 
   return (
-    <section className="relative h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-screen md:h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image with Filters */}
       <motion.div
         className="absolute inset-0 bg-cover bg-center"
@@ -170,7 +170,7 @@ function HeroSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="text-6xl md:text-8xl font-[family-name:var(--font-playfair)] tracking-[0.15em] text-[#1A1A1A] mb-4"
+          className="text-5xl sm:text-6xl md:text-8xl font-[family-name:var(--font-playfair)] tracking-[0.15em] text-[#1A1A1A] mb-4"
         >
           OG
         </motion.h1>
@@ -194,20 +194,20 @@ function HeroSection() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center"
-        >
-          <Link
-            href="/shop"
-            className="px-9 py-3.5 bg-[#8BA4B8] text-white text-sm font-semibold tracking-wider uppercase rounded-full hover:bg-[#6B8BA0] transition-all duration-300 shadow-md hover:shadow-lg"
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center"
           >
-            Shop Now
-          </Link>
-          <Link
-            href="/shop"
-            className="px-9 py-3.5 border-2 border-[#8BA4B8] text-[#8BA4B8] text-sm font-semibold tracking-wider uppercase rounded-full hover:bg-[#8BA4B8] hover:text-white transition-all duration-300"
-          >
-            View Collection
-          </Link>
+            <Link
+              href="/shop"
+              className="px-8 sm:px-9 py-3.5 bg-[#8BA4B8] text-white text-sm font-semibold tracking-wider uppercase rounded-full hover:bg-[#6B8BA0] transition-all duration-300 shadow-md hover:shadow-lg"
+            >
+              Shop Now
+            </Link>
+            <Link
+              href="/shop"
+              className="px-8 sm:px-9 py-3.5 border-2 border-[#8BA4B8] text-[#8BA4B8] text-sm font-semibold tracking-wider uppercase rounded-full hover:bg-[#8BA4B8] hover:text-white transition-all duration-300"
+            >
+              View Collection
+            </Link>
         </motion.div>
       </motion.div>
 

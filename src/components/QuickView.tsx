@@ -17,8 +17,28 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(product.main_image);
+  const [swiping, setSwiping] = useState(false);
+  const [swipeY, setSwipeY] = useState(0);
   const { addItem } = useCart();
   const router = useRouter();
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setSwiping(true);
+    setSwipeY(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!swiping) return;
+    const delta = e.touches[0].clientY - swipeY;
+    if (delta > 80) {
+      onClose();
+      setSwiping(false);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setSwiping(false);
+  };
 
   const handleAddToCart = () => {
     if (!selectedSize) return;
@@ -51,15 +71,19 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-[90] bg-white rounded-2xl overflow-hidden shadow-2xl max-w-2xl w-full sm:max-h-[90vh] flex flex-col sm:flex-row"
+            className="fixed inset-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-[90] bg-white sm:rounded-2xl overflow-hidden shadow-2xl max-w-2xl w-full sm:max-h-[90vh] flex flex-col sm:flex-row"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
-            <button onClick={onClose} className="absolute top-3 right-3 z-10 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-all">
+            <div className="sm:hidden absolute top-2 left-1/2 -translate-x-1/2 z-10 w-10 h-1 bg-[#D1D5DB] rounded-full" />
+            <button onClick={onClose} aria-label="Close quick view" className="touch-target absolute top-3 right-3 z-10 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-all">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
 
-            <div className="w-full sm:w-1/2 bg-[#F3F5F8] relative aspect-[4/5] sm:aspect-auto sm:h-auto">
+            <div className="w-full sm:w-1/2 bg-[#F3F5F8] relative aspect-[4/5] sm:aspect-auto sm:h-auto sm:max-h-[90vh]">
               <Image src={selectedImage} alt={product.name} fill sizes="(max-width: 640px) calc(100vw - 32px), 336px" className="object-cover" />
               {hasDiscount && (
                 <div className="absolute top-3 left-3 bg-[#8BA4B8] text-white text-[10px] font-semibold px-3 py-1.5 rounded-full">-{discountPercentage}%</div>
@@ -77,7 +101,7 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
               )}
             </div>
 
-            <div className="w-full sm:w-1/2 p-6 flex flex-col overflow-y-auto">
+            <div className="w-full sm:w-1/2 p-4 sm:p-6 flex flex-col overflow-y-auto">
               <h2 className="text-lg font-bold font-[family-name:var(--font-playfair)]">{product.name}</h2>
               <div className="flex items-center gap-3 mt-2">
                 <span className="text-xl font-semibold">EGP {product.price?.toLocaleString()}</span>

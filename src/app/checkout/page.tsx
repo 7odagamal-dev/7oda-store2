@@ -275,7 +275,7 @@ export default function Checkout() {
         </motion.h1>
         <div className="grid lg:grid-cols-2 gap-12 lg:items-start">
           <form onSubmit={handleSubmit} className="space-y-7">
-            <section className="bg-white border border-[#E5E7EB] p-7 rounded-2xl shadow-sm">
+            <section className="bg-white border border-[#E5E7EB] p-4 sm:p-7 rounded-2xl shadow-sm">
               <h2 className="text-lg font-semibold text-[#1A1A1A] mb-6 pb-3 border-b border-[#F0F0F0] font-[family-name:var(--font-playfair)]">
                 Shipping Details
               </h2>
@@ -283,7 +283,7 @@ export default function Checkout() {
                 <input type="text" name="customer_name" required value={formData.customer_name} onChange={handleChange}
                   className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] focus:border-[#8BA4B8] focus:outline-none rounded-xl text-sm text-[#1A1A1A] placeholder-[#9CA3AF] transition-all"
                   placeholder="Full Name" />
-                <input type="tel" name="phone" required value={formData.phone} onChange={handleChange} maxLength={11}
+                <input type="tel" name="phone" required value={formData.phone} onChange={handleChange} maxLength={11} inputMode="numeric"
                   className={`w-full px-4 py-3 bg-[#F8F9FB] border rounded-xl text-sm focus:outline-none transition-all ${phoneError ? 'border-red-400' : 'border-[#E5E7EB] focus:border-[#8BA4B8]'}`}
                   placeholder="Phone Number" />
                 {phoneError && <p className="text-xs text-red-400 -mt-2">{phoneError}</p>}
@@ -301,7 +301,7 @@ export default function Checkout() {
               </div>
             </section>
 
-            <section className="bg-white border border-[#E5E7EB] p-7 rounded-2xl shadow-sm">
+            <section className="bg-white border border-[#E5E7EB] p-4 sm:p-7 rounded-2xl shadow-sm">
               <h2 className="text-lg font-semibold text-[#1A1A1A] mb-5 pb-3 border-b border-[#F0F0F0] font-[family-name:var(--font-playfair)]">
                 Payment Method
               </h2>
@@ -338,7 +338,7 @@ export default function Checkout() {
             </button>
           </form>
 
-          <aside className="bg-white border border-[#E5E7EB] p-7 rounded-2xl sticky top-28 shadow-sm">
+          <aside className="bg-white border border-[#E5E7EB] p-4 sm:p-7 rounded-2xl md:sticky md:top-28 shadow-sm">
             <h2 className="text-lg font-semibold text-[#1A1A1A] mb-6 font-[family-name:var(--font-playfair)]">Your Order</h2>
             <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
               {items.map(item => (

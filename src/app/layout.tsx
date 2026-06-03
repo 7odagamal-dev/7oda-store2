@@ -61,7 +61,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" dir="ltr" className={`${playfair.variable} ${inter.variable}`} suppressHydrationWarning>
-      <body className="min-h-screen flex flex-col bg-[#F8F9FB] text-[#1A1A1A] font-sans antialiased" suppressHydrationWarning>
+      <body className="min-h-screen flex flex-col bg-[#F8F9FB] text-[#1A1A1A] font-sans antialiased safe-pad-x" suppressHydrationWarning>
         <JsonLd data={{
           "@context": "https://schema.org",
           "@type": "ClothingStore",

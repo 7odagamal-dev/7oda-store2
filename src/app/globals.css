@@ -195,6 +195,73 @@ image-rendering: auto;
 }
 
 /* ==========================================================================
+   RTL Support
+   ========================================================================== */
+[dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+[dir="rtl"] .left-0 { left: auto; right: 0; }
+[dir="rtl"] .right-0 { right: auto; left: 0; }
+[dir="rtl"] .left-3 { left: auto; right: 0.75rem; }
+[dir="rtl"] .right-3 { right: auto; left: 0.75rem; }
+[dir="rtl"] .-left-\[9999px\] { left: auto; right: -9999px; }
+[dir="rtl"] .-right-2 { right: auto; left: -0.5rem; }
+[dir="rtl"] .sm\:right-8 { right: auto; left: 2rem; }
+[dir="rtl"] .translate-x-0 { transform: translateX(0); }
+[dir="rtl"] .-translate-x-full { transform: translateX(100%); }
+[dir="rtl"] .translate-x-\[-50\%\] { transform: translateX(50%); }
+[dir="rtl"] .md\:translate-x-0 { transform: translateX(0); }
+
+/* ==========================================================================
+   Touch Device Support
+   ========================================================================== */
+/* Always show overlay buttons on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .touch-hide { display: none; }
+  .touch-show { display: flex; }
+}
+
+/* Minimum touch target 44x44px */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.touch-target-sm {
+  min-width: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   Focus-visible for accessibility
+   ========================================================================== */
+*:focus-visible {
+  outline: 2px solid #8BA4B8;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Remove default focus for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ==========================================================================
+   Safe Area Insets for notched phones
+   ========================================================================== */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-left { padding-left: env(safe-area-inset-left); }
+  .safe-right { padding-right: env(safe-area-inset-right); }
+  .safe-pad-x { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+}
+
+/* ==========================================================================
    Luxury Custom Cursor Rules
    ========================================================================== */
 /* hide default cursor when custom mouse is active on desktop */
@@ -203,4 +270,62 @@ image-rendering: auto;
 .hide-default-cursor * {
 cursor: none !important;
 }
+}
+
+/* ==========================================================================
+   Prevent horizontal overflow on very small screens
+   ========================================================================== */
+html {
+  overflow-x: hidden;
+}
+body {
+  overflow-x: hidden;
+}
+
+/* ==========================================================================
+   Touch interaction helpers
+   ========================================================================== */
+/* Disable text selection on interactive elements during touch */
+.touch-action-manipulation {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+/* Prevent double-tap zoom on buttons and links */
+button, a, select, input, textarea {
+  touch-action: manipulation;
+}
+
+/* Remove tap highlight color on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Long-press hint animation */
+@keyframes long-press-hint {
+  0% { transform: scale(1); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: scale(1.15); opacity: 0.8; }
+}
+.long-press-active {
+  animation: long-press-hint 0.5s ease-out forwards;
+}
+
+/* Pull-to-close indicator */
+.swipe-indicator {
+  width: 32px;
+  height: 4px;
+  border-radius: 2px;
+  background: #D1D5DB;
+  margin: 0 auto;
+}
+
+/* Show touch-only elements on coarse pointer devices */
+@media (pointer: coarse) {
+  .touch-only { display: flex; }
+  .no-touch { display: none; }
+}
+@media (pointer: fine) {
+  .touch-only { display: none; }
+  .no-touch { display: block; }
 }

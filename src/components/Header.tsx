@@ -33,9 +33,19 @@ export default function Header() {
 
   useEffect(() => {
     if (!userMenuOpen) return;
-    const close = () => setUserMenuOpen(false);
-    window.addEventListener('click', close);
-    return () => window.removeEventListener('click', close);
+    const close = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.user-menu-container')) setUserMenuOpen(false);
+    };
+    const timer = setTimeout(() => {
+      window.addEventListener('click', close);
+      window.addEventListener('touchstart', close, { passive: true });
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('click', close);
+      window.removeEventListener('touchstart', close);
+    };
   }, [userMenuOpen]);
 
   if (isAdminPage) return null;
@@ -99,21 +109,21 @@ export default function Header() {
           </nav>
 
           {/* Wishlist + Cart + Mobile Toggle */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Theme Toggle */}
-            <button onClick={toggleTheme} className="text-[#6B7280] hover:text-[#1A1A1A] transition-colors duration-300" aria-label="Toggle theme">
+            <button onClick={toggleTheme} className="touch-target text-[#6B7280] hover:text-[#1A1A1A] transition-colors duration-300" aria-label="Toggle theme">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
               </svg>
             </button>
             {/* Wishlist Icon */}
-            <Link href="/wishlist" className="relative text-[#6B7280] hover:text-[#1A1A1A] transition-colors duration-300" aria-label="Wishlist">
+            <Link href="/wishlist" className="touch-target relative text-[#6B7280] hover:text-[#1A1A1A] transition-colors duration-300" aria-label="Wishlist">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
             </Link>
             {/* Cart Icon */}
-            <Link href="/cart" className="relative text-[#6B7280] hover:text-[#1A1A1A] transition-colors duration-300">
+            <Link href="/cart" className="touch-target relative text-[#6B7280] hover:text-[#1A1A1A] transition-colors duration-300" aria-label="Shopping cart">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
               </svg>
@@ -123,7 +133,7 @@ export default function Header() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
-                    className="absolute -top-2 -right-2 w-4 h-4 bg-[#8BA4B8] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm"
+                    className="absolute -top-1 -right-1 w-[18px] h-[18px] bg-[#8BA4B8] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm"
                   >
                     {itemCount}
                   </motion.span>
@@ -132,12 +142,12 @@ export default function Header() {
             </Link>
 
             {/* User Icon */}
-            <div className="relative">
+            <div className="relative user-menu-container">
               {user ? (
                 <>
                   <button
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="text-[#6B7280] hover:text-[#1A1A1A] transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); }}
+                    className="touch-target text-[#6B7280] hover:text-[#1A1A1A] transition-colors"
                     aria-label="Account"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -151,7 +161,7 @@ export default function Header() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-[#E5E7EB] py-2 z-50"
+                        className="absolute right-0 ltr:right-0 rtl:left-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-[#E5E7EB] py-2 z-50"
                       >
                         <div className="px-4 py-2 text-xs text-[#6B7280] border-b border-[#E5E7EB] truncate">{user.email}</div>
                         <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#1A1A1A] hover:bg-[#F8F9FB] transition-colors">My Account</Link>
@@ -162,7 +172,7 @@ export default function Header() {
                   </AnimatePresence>
                 </>
               ) : (
-                <Link href="/auth/login" className="text-[#6B7280] hover:text-[#1A1A1A] transition-colors" aria-label="Sign in">
+                <Link href="/auth/login" className="touch-target text-[#6B7280] hover:text-[#1A1A1A] transition-colors" aria-label="Sign in">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                   </svg>
@@ -173,8 +183,8 @@ export default function Header() {
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-[#6B7280] hover:text-[#1A1A1A] transition-colors"
-              aria-label="Toggle menu"
+              className="touch-target md:hidden text-[#6B7280] hover:text-[#1A1A1A] transition-colors"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                 {mobileMenuOpen ? (
