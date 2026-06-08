@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface Product {
   id: string;
@@ -46,8 +47,8 @@ export default function BundlesPage() {
     setLoading(true);
     try {
       const [bundlesRes, productsRes] = await Promise.all([
-        fetch('/api/admin/bundles'),
-        fetch('/api/admin/products'),
+        adminFetch('/api/admin/bundles'),
+        adminFetch('/api/admin/products'),
       ]);
       const bundlesData = await bundlesRes.json();
       const productsData = await productsRes.json();
@@ -86,7 +87,7 @@ export default function BundlesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this bundle?')) return;
     try {
-      const res = await fetch('/api/admin/bundles', {
+      const res = await adminFetch('/api/admin/bundles', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
@@ -97,7 +98,7 @@ export default function BundlesPage() {
 
   const handleToggleActive = async (bundle: Bundle) => {
     try {
-      const res = await fetch('/api/admin/bundles', {
+      const res = await adminFetch('/api/admin/bundles', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: bundle.id, is_active: !bundle.is_active }),
@@ -126,13 +127,13 @@ export default function BundlesPage() {
 
       let res;
       if (editingId) {
-        res = await fetch('/api/admin/bundles', {
+        res = await adminFetch('/api/admin/bundles', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...body, id: editingId }),
         });
       } else {
-        res = await fetch('/api/admin/bundles', {
+        res = await adminFetch('/api/admin/bundles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),

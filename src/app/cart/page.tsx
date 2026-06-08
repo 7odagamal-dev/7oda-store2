@@ -3,12 +3,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useCart } from '@/context/CartContext';
+import { useCallback, memo } from 'react';
+import { useCart, type CartItem } from '@/context/CartContext';
 import { SHIPPING_RANGE } from '@/lib/shipping';
-import { memo, useCallback } from 'react';
 
 function Cart() {
-  const { items, removeItem, updateQuantity, subtotal, total } = useCart();
+  const { items, removeItem, addItem, updateQuantity, subtotal, total } = useCart();
   // Show minimum shipping for estimate; exact cost calculated at checkout after governorate selection
   const shippingEstimate = SHIPPING_RANGE.min;
   const finalTotal = total + shippingEstimate;
@@ -61,6 +61,7 @@ function Cart() {
                 key={`${item.product.id}-${item.size}`}
                 item={item}
                 onRemove={removeItem}
+                onAdd={addItem}
                 onUpdate={updateQuantity}
               />
             ))}
@@ -112,10 +113,19 @@ function Cart() {
   );
 }
 
-const CartItem = memo(({ item, onRemove, onUpdate }: { item: any; onRemove: (id: string, size: string) => void; onUpdate: (id: string, size: string, qty: number) => void }) => {
+const CartItem = memo(({ item, onRemove, onAdd, onUpdate }: { item: CartItem; onRemove: (id: string, size: string) => void; onAdd: (product: CartItem['product'], size: string, qty?: number) => void; onUpdate: (id: string, size: string, qty: number) => void }) => {
   const handleRemove = useCallback(() => onRemove(item.product.id, item.size), [onRemove, item.product.id, item.size]);
   const decreaseQty = useCallback(() => onUpdate(item.product.id, item.size, item.quantity - 1), [onUpdate, item.product.id, item.size, item.quantity]);
   const increaseQty = useCallback(() => onUpdate(item.product.id, item.size, item.quantity + 1), [onUpdate, item.product.id, item.size, item.quantity]);
+
+  const handleSizeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSize = e.target.value;
+    if (newSize === item.size) return;
+    onRemove(item.product.id, item.size);
+    setTimeout(() => onAdd(item.product, newSize, item.quantity), 0);
+  }, [item, onRemove, onAdd]);
+
+  const sizes = item.product.sizes || [];
 
   return (
     <motion.div
@@ -144,9 +154,18 @@ const CartItem = memo(({ item, onRemove, onUpdate }: { item: any; onRemove: (id:
                   {item.product.name}
                 </h3>
               </Link>
-              <p className="text-[var(--text-xs)] text-secondary mt-[var(--space-xs)]">
-                Size: <span className="text-foreground font-medium">{item.size}</span>
-              </p>
+              <div className="flex items-center gap-[var(--space-sm)] mt-[var(--space-xs)]">
+                <span className="text-[var(--text-xs)] text-secondary">Size:</span>
+                <select
+                  value={item.size}
+                  onChange={handleSizeChange}
+                  className="text-[var(--text-xs)] font-medium bg-card-hover border border-border rounded-[var(--radius-sm)] px-[var(--space-sm)] py-[2px] text-foreground focus:outline-none focus:border-accent"
+                >
+                  {sizes.map((s: string) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <button onClick={handleRemove} aria-label="Remove item" className="touch-target-sm text-[#D1D5DB] hover:text-red-400 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">

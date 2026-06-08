@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { adminFetch } from '@/lib/admin-fetch';
 
 const navItems = [
   { href: '/admin',          label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -25,11 +25,11 @@ const navItems = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname  = usePathname();
   const router    = useRouter();
-  const [verified, setVerified]   = useState(false);
+  const [verified, setVerified]   = useState<'loading' | boolean>('loading');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    fetch('/api/admin/verify', { method: 'GET' })
+    adminFetch('/api/admin/verify', { method: 'GET' })
       .then((res) => res.json())
       .then((data) => {
         if (data.valid) {
@@ -43,38 +43,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
-  useEffect(() => {
-    const origFetch = window.fetch.bind(window);
-    window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-      const csrfCookie = document.cookie.split('; ').find(c => c.startsWith('csrf-token='));
-      const csrfToken = csrfCookie?.split('=')[1];
-      if (csrfToken && init?.method && init.method !== 'GET') {
-        const headers = new Headers(init?.headers);
-        if (!headers.has('x-csrf-token')) headers.set('x-csrf-token', csrfToken);
-        return origFetch(input, { ...init, headers });
-      }
-      return origFetch(input, init);
-    };
-    return () => { window.fetch = origFetch; };
-  }, []);
-
   const handleLogout = async () => {
-    await fetch('/api/admin/logout', { method: 'POST' });
+    await adminFetch('/api/admin/logout', { method: 'POST' });
     router.push('/admin-login');
   };
 
-  if (!verified) {
-    return (
-      <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center">
-        <motion.div
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="text-[#8BA4B8] text-sm tracking-widest font-medium"
-        >
-          VERIFYING...
-        </motion.div>
-      </div>
-    );
+  if (verified === 'loading') {
+    return <div className="min-h-screen bg-background" />;
   }
 
   return (
@@ -89,48 +64,47 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Sidebar */}
       <aside
-        className={`fsa-sidebar bg-card border-r border-border z-30 transform transition-transform duration-300 shadow-sm
+        className={`fsa-sidebar bg-card border-r border-border z-30 transform transition-transform duration-300 shadow-sm flex flex-col
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0`}
       >
-        <div className="p-[var(--space-lg)] border-b border-border-light">
-          <Link href="/admin" className="flex flex-col items-start">
-            <span className="text-[var(--text-2xl)] font-bold tracking-[0.3em] text-foreground font-[family-name:var(--font-playfair)]">OG</span>
-            <span className="text-[var(--text-xs)] tracking-[0.25em] text-secondary uppercase mt-0.5">Admin Panel</span>
-          </Link>
-        </div>
+        <Link href="/admin" className="shrink-0 px-[var(--space-md)] py-[var(--space-md)] border-b border-border-light flex items-center gap-[var(--space-sm)] md:flex-col md:items-start md:px-[var(--space-lg)] md:py-[var(--space-lg)]">
+          <span className="text-[var(--text-xl)] md:text-[var(--text-2xl)] font-bold tracking-[0.3em] text-foreground font-[family-name:var(--font-playfair)]">OG</span>
+          <span className="text-[var(--text-xs)] tracking-[0.25em] text-secondary uppercase">Admin</span>
+        </Link>
 
-        <nav className="px-[var(--space-sm)] py-[var(--space-md)] space-y-[var(--space-xs)]">
+        <nav className="flex-1 overflow-y-auto px-[var(--space-sm)] py-[var(--space-sm)] space-y-[2px]">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-[var(--space-sm)] px-[var(--space-md)] py-[var(--space-sm)] rounded-[var(--radius-xl)] transition-all duration-200 ${
+                className={`flex items-center gap-[var(--space-sm)] px-[var(--space-md)] py-[11px] rounded-[var(--radius-lg)] transition-all duration-200 touch-target ${
                   isActive
                     ? 'bg-accent text-white shadow-sm'
                     : 'text-secondary hover:text-foreground hover:bg-card-hover'
                 }`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 shrink-0">
                   <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                 </svg>
-                <span className="text-[var(--text-sm)] font-medium">{item.label}</span>
+                <span className="text-[var(--text-sm)] font-medium truncate">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="absolute bottom-[var(--space-lg)] left-[var(--space-md)] right-[var(--space-md)]">
+        <div className="shrink-0 px-[var(--space-sm)] pb-[var(--space-sm)] pt-[var(--space-sm)] md:px-[var(--space-md)] md:pb-[var(--space-md)]">
+          <div className="border-t border-border-light mb-[var(--space-sm)]" />
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-[var(--space-sm)] px-[var(--space-md)] py-[var(--space-sm)] border border-border text-secondary hover:text-foreground hover:border-accent rounded-[var(--radius-xl)] transition-all text-[var(--text-sm)]"
+            className="w-full flex items-center gap-[var(--space-sm)] px-[var(--space-md)] py-[11px] rounded-[var(--radius-lg)] transition-all duration-200 touch-target text-secondary hover:text-rose-500 hover:bg-rose-50/50"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 shrink-0">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
             </svg>
-            <span>Logout</span>
+            <span className="text-[var(--text-sm)] font-medium">Logout</span>
           </button>
         </div>
       </aside>

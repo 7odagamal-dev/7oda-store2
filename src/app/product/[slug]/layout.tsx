@@ -5,26 +5,50 @@ type MetadataProps = {
   params: Promise<{ slug: string }>;
 };
 
+function absoluteUrl(base: string, path: string): string {
+  if (path.startsWith('http')) return path;
+  return `${base.replace(/\/+$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 export async function generateMetadata(
   { params }: MetadataProps
 ): Promise<Metadata> {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const canonicalUrl = `${baseUrl.replace(/\/+$/, '')}/product/${encodeURIComponent(slug)}`;
 
   try {
     const res = await fetch(`${baseUrl}/api/products/${encodeURIComponent(slug)}`, { cache: 'no-store' });
     if (res.ok) {
       const json = await res.json();
       if (json.product) {
+        const p = json.product;
+        const title = `${p.name} - OG Old Gold`;
+        const description = p.description || `Shop ${p.name} at OG Old Gold. Premium quality.`;
+        const image = absoluteUrl(baseUrl, p.main_image || '/images/logo.jpeg');
+        const price = p.price;
+        const currency = 'EGP';
+
         return {
-          title: `${json.product.name} - OG Store`,
-          description: json.product.description || `Buy ${json.product.name} at OG Store`,
+          title,
+          description,
           openGraph: {
-            title: `${json.product.name} - OG Store`,
-            description: json.product.description || `Buy ${json.product.name} at OG Store`,
-            images: [json.product.main_image || '/images/logo.jpeg'],
+            title,
+            description,
+            url: canonicalUrl,
+            siteName: 'OG Old Gold',
+            images: [{ url: image, width: 1200, height: 630, alt: p.name }],
+            locale: 'en_US',
+            type: 'website',
           },
+          twitter: {
+            card: 'summary_large_image',
+            title,
+            description,
+            images: [image],
+          },
+          alternates: { canonical: canonicalUrl },
         };
       }
     }
@@ -33,8 +57,14 @@ export async function generateMetadata(
   }
 
   return {
-    title: 'Product - OG Store',
-    description: 'View product details on OG Store',
+    title: 'Product - OG Old Gold',
+    description: 'View product details on OG Old Gold',
+    openGraph: {
+      title: 'OG Old Gold',
+      description: 'Premium fashion store',
+      images: [{ url: absoluteUrl(baseUrl, '/images/logo.jpeg'), width: 1200, height: 630 }],
+    },
+    twitter: { card: 'summary_large_image' },
   };
 }
 

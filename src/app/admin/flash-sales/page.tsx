@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface Product {
   id: string;
@@ -39,8 +40,8 @@ export default function FlashSalesPage() {
     setLoading(true);
     try {
       const [salesRes, productsRes] = await Promise.all([
-        fetch('/api/admin/flash-sales'),
-        fetch('/api/admin/products'),
+        adminFetch('/api/admin/flash-sales'),
+        adminFetch('/api/admin/products'),
       ]);
       const salesData = await salesRes.json();
       const productsData = await productsRes.json();
@@ -76,7 +77,7 @@ export default function FlashSalesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this flash sale?')) return;
     try {
-      const res = await fetch('/api/admin/flash-sales', {
+      const res = await adminFetch('/api/admin/flash-sales', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
@@ -87,7 +88,7 @@ export default function FlashSalesPage() {
 
   const handleToggleActive = async (sale: FlashSale) => {
     try {
-      const res = await fetch('/api/admin/flash-sales', {
+      const res = await adminFetch('/api/admin/flash-sales', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: sale.id, is_active: !sale.is_active }),
@@ -112,13 +113,13 @@ export default function FlashSalesPage() {
 
       let res;
       if (editingId) {
-        res = await fetch('/api/admin/flash-sales', {
+        res = await adminFetch('/api/admin/flash-sales', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...body, id: editingId }),
         });
       } else {
-        res = await fetch('/api/admin/flash-sales', {
+        res = await adminFetch('/api/admin/flash-sales', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),

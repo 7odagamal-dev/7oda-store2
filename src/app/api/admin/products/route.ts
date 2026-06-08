@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAdminSession } from '@/lib/auth';
 import { filterByStore } from '@/lib/db';
-import { csrfGuard } from '@/lib/csrf';
+import { csrfGuard, safeJson } from '@/lib/csrf';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 function sanitizeProductBody(body: Record<string, unknown>): Record<string, unknown> | null {
   const allowed: Record<string, unknown> = {};
@@ -84,6 +85,10 @@ export async function POST(req: NextRequest) {
   const session = await getAdminSession(req);
   if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+  const rlAllowed = await checkRateLimit(ip, 'admin_create_product', 30, 60000);
+  if (!rlAllowed) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+
   let raw: Record<string, unknown>;
   try {
     raw = await req.json();
@@ -101,7 +106,7 @@ export async function POST(req: NextRequest) {
     };
     const { data, error } = await supabaseAdmin.from('products').insert([insertData]).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data, { status: 201 });
+    return safeJson(data, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
@@ -114,6 +119,10 @@ export async function PUT(req: NextRequest) {
 
   const session = await getAdminSession(req);
   if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+  const rlAllowed = await checkRateLimit(ip, 'admin_update_product', 30, 60000);
+  if (!rlAllowed) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
   let raw: Record<string, unknown>;
   try {
@@ -162,7 +171,7 @@ export async function PUT(req: NextRequest) {
     if (session.storeId) query = filterByStore(query, session.storeId);
     const { data, error } = await query.select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
+    return safeJson(data);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
@@ -175,6 +184,10 @@ export async function DELETE(req: NextRequest) {
 
   const session = await getAdminSession(req);
   if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+  const rlAllowed = await checkRateLimit(ip, 'admin_delete_product', 15, 60000);
+  if (!rlAllowed) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
   let raw: Record<string, unknown>;
   try {
@@ -193,7 +206,7 @@ export async function DELETE(req: NextRequest) {
     if (session.storeId) query = filterByStore(query, session.storeId);
     const { error } = await query;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ success: true });
+    return safeJson({ success: true });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });

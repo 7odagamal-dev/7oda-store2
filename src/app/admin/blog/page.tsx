@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface BlogPost {
   id: string;
@@ -41,7 +42,7 @@ export default function BlogPage() {
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/blog?all=true');
+      const res = await adminFetch('/api/admin/blog?all=true');
       const data = await res.json();
       setPosts(data.posts ?? []);
     } catch {
@@ -77,7 +78,7 @@ export default function BlogPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this post?')) return;
     try {
-      const res = await fetch('/api/admin/blog', {
+      const res = await adminFetch('/api/admin/blog', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
@@ -88,7 +89,7 @@ export default function BlogPage() {
 
   const handleTogglePublish = async (post: BlogPost) => {
     try {
-      const res = await fetch('/api/admin/blog', {
+      const res = await adminFetch('/api/admin/blog', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: post.id, published: !post.published }),
@@ -119,13 +120,13 @@ export default function BlogPage() {
 
       let res;
       if (editingId) {
-        res = await fetch('/api/admin/blog', {
+        res = await adminFetch('/api/admin/blog', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...body, id: editingId }),
         });
       } else {
-        res = await fetch('/api/admin/blog', {
+        res = await adminFetch('/api/admin/blog', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAdminSession } from '@/lib/auth';
 import { filterByStore } from '@/lib/db';
-import { csrfGuard } from '@/lib/csrf';
+import { csrfGuard, safeJson } from '@/lib/csrf';
 
 export async function GET(req: NextRequest) {
   const session = await getAdminSession(req);
@@ -39,7 +39,7 @@ export async function DELETE(req: NextRequest) {
     const { error } = await query;
 
     if (error) throw error;
-    return NextResponse.json({ success: true });
+    return safeJson({ success: true });
   } catch (error) {
     console.error('Admin review delete error:', error);
     return NextResponse.json({ error: 'Failed to delete review' }, { status: 500 });

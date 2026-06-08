@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function OfflinePage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8F9FB] dark:bg-[#0F1115] px-6">
@@ -11,9 +13,9 @@ export default function OfflinePage() {
         <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF] mb-8 leading-relaxed">
           Check your connection and try again. Some previously viewed pages may still be available.
         </p>
-        <a href="/" className="inline-flex px-6 py-3 bg-[#8BA4B8] text-white rounded-xl text-sm font-semibold hover:bg-[#6B8BA0] transition-all">
+        <Link href="/" className="inline-flex px-6 py-3 bg-[#8BA4B8] text-white rounded-xl text-sm font-semibold hover:bg-[#6B8BA0] transition-all">
           Go Home
-        </a>
+        </Link>
       </div>
     </div>
   )

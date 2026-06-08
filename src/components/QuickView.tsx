@@ -14,13 +14,37 @@ interface QuickViewProps {
 }
 
 export default function QuickView({ product, isOpen, onClose }: QuickViewProps) {
-  const [selectedSize, setSelectedSize] = useState('');
-  const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(product.main_image);
   const [swiping, setSwiping] = useState(false);
   const [swipeY, setSwipeY] = useState(0);
+  const [sizeQty, setSizeQty] = useState<Record<string, number>>({});
+  const [targetQty, setTargetQty] = useState(1);
   const { addItem } = useCart();
   const router = useRouter();
+
+  const allocatedTotal = Object.values(sizeQty).reduce((a, b) => a + b, 0);
+  const isMultiMode = targetQty > 1;
+  const isBalanced = allocatedTotal === targetQty;
+  const totalQty = targetQty;
+
+  const availableStock = Math.max(0, product.stock - (product.reserved_stock ?? 0));
+
+  const incrementSize = (size: string) => {
+    if (allocatedTotal >= targetQty) return;
+    setSizeQty(prev => ({ ...prev, [size]: (prev[size] || 0) + 1 }));
+  };
+
+  const decrementSize = (size: string) => {
+    setSizeQty(prev => {
+      const current = prev[size] || 0;
+      if (current <= 1) {
+        const copy = { ...prev };
+        delete copy[size];
+        return Object.keys(copy).length > 0 ? copy : {};
+      }
+      return { ...prev, [size]: current - 1 };
+    });
+  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setSwiping(true);
@@ -41,9 +65,15 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
   };
 
   const handleAddToCart = () => {
-    if (!selectedSize) return;
-    for (let i = 0; i < quantity; i++) {
-      addItem(product, selectedSize, 1);
+    if (allocatedTotal === 0) return;
+    if (isMultiMode && !isBalanced) {
+      alert(`Please distribute all ${targetQty} items across sizes (${allocatedTotal}/${targetQty} allocated)`);
+      return;
+    }
+    for (const [size, qty] of Object.entries(sizeQty)) {
+      if (qty > 0) {
+        addItem(product, size, qty);
+      }
     }
     onClose();
     router.push('/cart');
@@ -53,6 +83,9 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
   const discountPercentage = hasDiscount
     ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
     : 0;
+
+  const isLowStock = availableStock > 0 && availableStock <= 5;
+  const isOutOfStock = availableStock <= 0;
 
   const availableImages = [product.main_image, product.second_image, product.third_image, product.fourth_image].filter(Boolean) as string[];
 
@@ -113,35 +146,98 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
               )}
 
               <div className="mt-[var(--space-md)]">
-                <p className="text-[var(--text-xs)] font-medium text-secondary mb-[var(--space-sm)] uppercase tracking-wider">Size</p>
+                <div className="flex items-center justify-between mb-[var(--space-sm)]">
+                  <p className="text-[var(--text-xs)] font-medium text-secondary uppercase tracking-wider">
+                    Quantity: {targetQty}
+                  </p>
+                  <span className={`text-[var(--text-xs)] font-medium ${isLowStock ? 'text-rose-500' : 'text-green-600'}`}>
+                    {isLowStock ? `Only ${availableStock} left` : `${availableStock} available`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-[var(--space-sm)] mb-[var(--space-sm)]">
+                  <div className="flex items-center border border-border rounded-full overflow-hidden">
+                    <button type="button"
+                      onClick={() => {
+                        if (targetQty <= 1) return;
+                        const exitingMulti = targetQty === 2;
+                        setTargetQty(prev => prev - 1);
+                        if (exitingMulti) {
+                          setSizeQty(product.sizes?.[0] ? { [product.sizes[0]]: 1 } : {});
+                        }
+                      }}
+                      disabled={targetQty <= 1}
+                      className="px-2 py-0.5 text-xs hover:bg-card-hover disabled:opacity-30 transition-colors"
+                    >−</button>
+                    <span className="px-2 py-0.5 text-xs font-medium min-w-[1.5rem] text-center border-x border-border">{targetQty}</span>
+                    <button type="button"
+                      onClick={() => {
+                        const maxLimit = Math.min(availableStock, 10);
+                        if (targetQty >= maxLimit) return;
+                        const enteringMulti = targetQty === 1;
+                        setTargetQty(prev => prev + 1);
+                        if (enteringMulti) {
+                          setSizeQty({});
+                        }
+                      }}
+                      disabled={targetQty >= Math.min(availableStock, 10)}
+                      className="px-2 py-0.5 text-xs hover:bg-card-hover disabled:opacity-30 transition-colors"
+                    >+</button>
+                  </div>
+                  {isMultiMode && !isBalanced && (
+                    <span className="text-[10px] text-rose-500 font-medium">
+                      Allocate {targetQty - allocatedTotal} more
+                    </span>
+                  )}
+                  {isMultiMode && isBalanced && allocatedTotal > 0 && (
+                    <span className="text-[10px] text-green-600 font-medium">
+                      ✓ Allocated
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-[var(--space-sm)]">
-                  {product.sizes?.map(size => (
-                    <button key={size} onClick={() => setSelectedSize(size)}
-                      className={`px-[var(--space-md)] py-[var(--space-sm)] text-[var(--text-xs)] font-medium rounded-full border transition-all ${
-                        selectedSize === size
-                          ? 'bg-foreground text-background border-foreground'
-                          : 'bg-card text-secondary border-border hover:border-accent'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
+                  {product.sizes?.map(size => {
+                    const qty = sizeQty[size] || 0;
+                    return isMultiMode ? (
+                      <div key={size} className="flex flex-col items-center gap-1">
+                        <span className="text-[10px] text-secondary font-medium uppercase">{size}</span>
+                        <div className="flex items-center border border-border rounded-full overflow-hidden">
+                          <button type="button" onClick={() => decrementSize(size)} disabled={qty === 0}
+                            className="px-1.5 py-0.5 text-xs hover:bg-card-hover disabled:opacity-30 transition-colors"
+                          >−</button>
+                          <span className="px-2 py-0.5 text-xs font-medium min-w-[1.5rem] text-center border-x border-border">{qty}</span>
+                          <button type="button" onClick={() => incrementSize(size)}
+                            disabled={allocatedTotal >= targetQty}
+                            className="px-1.5 py-0.5 text-xs hover:bg-card-hover disabled:opacity-30 transition-colors"
+                          >+</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSizeQty({ [size]: 1 })}
+                        className={`py-[var(--space-xs)] px-[var(--space-md)] text-[10px] font-medium uppercase rounded-full transition-all duration-300 ${
+                          qty > 0
+                            ? 'bg-accent text-white shadow-sm'
+                            : 'bg-card-hover text-secondary hover:bg-border hover:text-foreground'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
                 </div>
+                {isMultiMode && !isBalanced && allocatedTotal > 0 && (
+                  <p className="text-[10px] text-rose-500 mt-[var(--space-xs)] text-center">
+                    {allocatedTotal} of {targetQty} allocated
+                  </p>
+                )}
               </div>
 
-              <div className="mt-[var(--space-md)]">
-                <p className="text-[var(--text-xs)] font-medium text-secondary mb-[var(--space-sm)] uppercase tracking-wider">Qty</p>
-                <div className="flex items-center border border-border rounded-[var(--radius-md)] w-fit">
-                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--text-sm)] hover:bg-card-hover">−</button>
-                  <span className="px-[var(--space-md)] py-[var(--space-xs)] text-[var(--text-sm)] font-medium border-x border-border">{quantity}</span>
-                  <button onClick={() => setQuantity(q => Math.min(product.stock, q + 1))} className="px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--text-sm)] hover:bg-card-hover">+</button>
-                </div>
-              </div>
-
-              <button onClick={handleAddToCart} disabled={!selectedSize}
+              <button onClick={handleAddToCart} disabled={allocatedTotal === 0 || isOutOfStock || (isMultiMode && !isBalanced)}
                 className="mt-[var(--space-xl)] w-full py-[var(--space-sm)] bg-foreground text-background rounded-[var(--radius-xl)] text-[var(--text-sm)] font-semibold hover:bg-[#333] transition-all disabled:opacity-50"
               >
-                {selectedSize ? `Add to Cart — EGP ${(product.price * quantity).toLocaleString()}` : 'Select a Size'}
+                {isOutOfStock ? 'Out of Stock' : allocatedTotal === 0 ? 'Select a size' : isMultiMode && !isBalanced ? `Allocate ${targetQty - allocatedTotal} more` : `Add to Cart — EGP ${(product.price * allocatedTotal).toLocaleString()}`}
               </button>
 
               <button onClick={() => { onClose(); router.push(`/product/${product.slug}`); }}

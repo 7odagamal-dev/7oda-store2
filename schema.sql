@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS store_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
+  name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'staff' CHECK (role IN ('superadmin', 'owner', 'admin', 'staff')),
   is_active BOOLEAN DEFAULT true,
@@ -200,9 +201,9 @@ CREATE TABLE IF NOT EXISTS inventory_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id UUID REFERENCES stores(id) ON DELETE CASCADE NOT NULL,
   product_id UUID REFERENCES products(id) ON DELETE CASCADE NOT NULL,
+  order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
   change INTEGER NOT NULL,
   reason TEXT,
-  reference_id TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -294,7 +295,9 @@ CREATE OR REPLACE FUNCTION reserve_order_stock(order_id UUID, items JSONB)
 RETURNS VOID AS $$
 DECLARE
   item JSONB;
+  order_store_id UUID;
 BEGIN
+  SELECT store_id INTO order_store_id FROM orders WHERE id = order_id;
   FOR item IN SELECT * FROM jsonb_array_elements(items)
   LOOP
     UPDATE products
@@ -306,25 +309,37 @@ BEGIN
       RAISE EXCEPTION 'Insufficient stock for product %', (item->>'product_id');
     END IF;
 
-    INSERT INTO inventory_log (store_id, product_id, change, reason, reference_id)
-    SELECT store_id, (item->>'product_id')::UUID, -(item->>'quantity')::INTEGER, 'reserve', order_id::TEXT
-    FROM products WHERE id = (item->>'product_id')::UUID;
+    INSERT INTO inventory_log (store_id, order_id, product_id, change, reason)
+    VALUES (order_store_id, order_id, (item->>'product_id')::UUID, -(item->>'quantity')::INTEGER, 'reserve');
   END LOOP;
 END;
 $$ LANGUAGE plpgsql;
 
 -- commit_order_stock: Commits reserved stock (confirms the order)
+-- IDEMPOTENT: guarded by reserved_stock >= quantity — second call is a no-op
 CREATE OR REPLACE FUNCTION commit_order_stock(order_id UUID, items JSONB)
 RETURNS VOID AS $$
 DECLARE
   item JSONB;
+  order_store_id UUID;
+  updated_rows INTEGER;
 BEGIN
+  SELECT store_id INTO order_store_id FROM orders WHERE id = order_id;
   FOR item IN SELECT * FROM jsonb_array_elements(items)
   LOOP
     UPDATE products
     SET stock = stock - (item->>'quantity')::INTEGER,
-        reserved_stock = GREATEST(reserved_stock - (item->>'quantity')::INTEGER, 0)
-    WHERE id = (item->>'product_id')::UUID;
+        reserved_stock = reserved_stock - (item->>'quantity')::INTEGER
+    WHERE id = (item->>'product_id')::UUID
+      AND reserved_stock >= (item->>'quantity')::INTEGER;
+
+    GET DIAGNOSTICS updated_rows = ROW_COUNT;
+    IF updated_rows = 0 THEN
+      RAISE EXCEPTION 'Stock already committed or insufficient reserved_stock for product %', (item->>'product_id')::UUID;
+    END IF;
+
+    INSERT INTO inventory_log (store_id, order_id, product_id, change, reason)
+    VALUES (order_store_id, order_id, (item->>'product_id')::UUID, -(item->>'quantity')::INTEGER, 'commit');
   END LOOP;
 END;
 $$ LANGUAGE plpgsql;
@@ -334,12 +349,17 @@ CREATE OR REPLACE FUNCTION release_order_stock(order_id UUID, items JSONB)
 RETURNS VOID AS $$
 DECLARE
   item JSONB;
+  order_store_id UUID;
 BEGIN
+  SELECT store_id INTO order_store_id FROM orders WHERE id = order_id;
   FOR item IN SELECT * FROM jsonb_array_elements(items)
   LOOP
     UPDATE products
     SET reserved_stock = GREATEST(reserved_stock - (item->>'quantity')::INTEGER, 0)
     WHERE id = (item->>'product_id')::UUID;
+
+    INSERT INTO inventory_log (store_id, order_id, product_id, change, reason)
+    VALUES (order_store_id, order_id, (item->>'product_id')::UUID, -(item->>'quantity')::INTEGER, 'release');
   END LOOP;
 END;
 $$ LANGUAGE plpgsql;

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAdminSession } from '@/lib/auth';
-import { csrfGuard } from '@/lib/csrf';
+import { csrfGuard, safeJson } from '@/lib/csrf';
 
 export async function GET(req: NextRequest) {
   const session = await getAdminSession(req);
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('Flash sales GET error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -79,13 +79,13 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error('Flash sale create error:', error.message);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
-    return NextResponse.json({ sale });
+    return safeJson({ sale });
   } catch (error) {
     console.error('Flash sales POST error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -133,13 +133,13 @@ export async function PUT(req: NextRequest) {
 
     if (error) {
       console.error('Flash sale update error:', error.message);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
-    return NextResponse.json({ sale });
+    return safeJson({ sale });
   } catch (error) {
     console.error('Flash sales PUT error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -163,12 +163,12 @@ export async function DELETE(req: NextRequest) {
 
     if (error) {
       console.error('Flash sale delete error:', error.message);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return safeJson({ success: true });
   } catch (error) {
     console.error('Flash sales DELETE error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

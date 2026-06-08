@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { adminFetch } from '@/lib/admin-fetch'
 
 interface MonthlyData {
   month: string; revenue: number; count: number
@@ -28,7 +29,7 @@ export default function AdminDashboard() {
   const [chartView, setChartView] = useState<'revenue' | 'orders'>('revenue')
 
   useEffect(() => {
-    fetch('/api/admin/stats').then(r => r.json()).then(data => {
+    adminFetch('/api/admin/stats').then(r => r.json()).then(data => {
       setStats(data)
       setLoading(false)
     }).catch(() => setLoading(false))

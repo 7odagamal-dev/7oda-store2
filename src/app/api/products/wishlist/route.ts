@@ -27,6 +27,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ products: products || [] });
   } catch (error) {
     console.error('Wishlist API error:', error);
-    return NextResponse.json({ products: [] });
+    return NextResponse.json({ error: 'Failed to fetch wishlist products' }, { status: 500 });
   }
 }

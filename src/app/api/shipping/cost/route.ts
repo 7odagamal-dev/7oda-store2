@@ -17,12 +17,12 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error || !data) {
-      return NextResponse.json({ cost: 100, estimated_days: '2-4 days' });
+      return NextResponse.json({ error: 'Shipping rate not found' }, { status: 404 });
     }
 
     return NextResponse.json({ cost: data.cost, estimated_days: data.estimated_days });
   } catch (error) {
     console.error('Shipping cost error:', error);
-    return NextResponse.json({ cost: 100, estimated_days: '2-4 days' });
+    return NextResponse.json({ error: 'Failed to calculate shipping cost' }, { status: 500 });
   }
 }

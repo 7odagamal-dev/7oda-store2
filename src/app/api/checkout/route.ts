@@ -4,6 +4,11 @@ import { getStoreContext } from '@/lib/store-context';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { createClient } from '@/lib/supabase-server';
 import { calculateShippingCost } from '@/lib/shipping';
+import { getIdempotencyResult, setIdempotencyResult } from '@/lib/idempotency';
+
+function stripHtml(str: string): string {
+  return str.replace(/<[^>]*>/g, '');
+}
 
 const VALID_PAYMENT_METHODS = ['cash_on_delivery', 'online_transfer', 'paymob'] as const;
 type PaymentMethod = (typeof VALID_PAYMENT_METHODS)[number];
@@ -27,12 +32,29 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { items, customer_name, phone, governorate, city, address, notes, payment_method, coupon_code } = body;
+    const customer_name = body.customer_name ? stripHtml(body.customer_name.trim()) : '';
+    const phone = body.phone ? body.phone.trim() : '';
+    const governorate = body.governorate ? body.governorate.trim() : '';
+    const city = body.city ? body.city.trim() : '';
+    const address = body.address ? stripHtml(body.address.trim()) : '';
+    const notes = body.notes ? stripHtml(body.notes.trim().slice(0, 500)) : '';
+    const payment_method = body.payment_method;
+    const coupon_code = body.coupon_code;
+    const idempotency_key = body.idempotency_key;
+    const items = body.items;
+
+    // ── Idempotency check: if this key was already processed, return stored result ──
+    if (idempotency_key) {
+      const existingOrderId = getIdempotencyResult(idempotency_key);
+      if (existingOrderId) {
+        return NextResponse.json({ success: true, orderId: existingOrderId, idempotent: true }, { status: 200 });
+      }
+    }
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
     }
-    if (!customer_name || !phone || !governorate || !city || !address) {
+    if (!customer_name || !phone || !governorate || !city) {
       return NextResponse.json({ error: 'Please complete shipping details' }, { status: 400 });
     }
 
@@ -68,6 +90,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to validate products' }, { status: 500 });
     }
 
+    interface DbProduct {
+      id: string;
+      name: string;
+      price: number;
+      main_image: string | null;
+      stock: number;
+      reserved_stock: number | null;
+    }
+
     let calculatedTotal = 0;
     const orderItems: Array<{
       product_id: string;
@@ -79,7 +110,7 @@ export async function POST(req: NextRequest) {
     }> = [];
 
     for (const item of items as CheckoutItem[]) {
-      const dbProduct = products.find((p: any) => p.id === item.product_id);
+      const dbProduct = (products as DbProduct[]).find(p => p.id === item.product_id);
       if (!dbProduct) {
         return NextResponse.json({ error: `Product not found: ${item.product_id}` }, { status: 400 });
       }
@@ -208,6 +239,11 @@ export async function POST(req: NextRequest) {
       if (couponIncrError) {
         console.error('[Checkout] Failed to increment coupon usage:', couponIncrError.message);
       }
+    }
+
+    // Store idempotency key so retries won't create duplicate orders
+    if (idempotency_key) {
+      setIdempotencyResult(idempotency_key, order.id);
     }
 
     return NextResponse.json({ success: true, orderId: order.id }, { status: 201 });

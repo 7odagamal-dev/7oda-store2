@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getAdminSession } from '@/lib/auth';
+import { csrfGuard, safeJson } from '@/lib/csrf';
 
 export async function POST(req: NextRequest) {
+  const csrfResp = csrfGuard(req);
+  if (csrfResp) return csrfResp;
+  const session = await getAdminSession(req);
+  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { userId } = await req.json();
     if (!userId) {
@@ -17,7 +23,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to confirm user' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return safeJson({ success: true });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     console.error('Auto-confirm route error:', msg);

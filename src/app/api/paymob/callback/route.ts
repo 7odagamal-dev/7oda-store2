@@ -7,6 +7,19 @@ const PAYMOB_TXN_WINDOW_MS = 5 * 60 * 1000; // 5 min
 
 type ErrType = 'hmac_failure' | 'order_not_found' | 'amount_mismatch' | 'stock_decrement_failed' | 'db_error' | 'unknown';
 
+interface PaymobObj {
+  id: number;
+  success: boolean;
+  created_at: string;
+  amount_cents?: number;
+  order: {
+    merchant_order_id: string;
+  };
+  payment_key_claims?: {
+    amount_cents: number;
+  };
+}
+
 async function getOrderStoreId(orderId: string): Promise<string | null> {
   const { data } = await supabaseAdmin
     .from('orders')
@@ -17,7 +30,7 @@ async function getOrderStoreId(orderId: string): Promise<string | null> {
 }
 
 async function writeEvent(params: {
-  paymobTxnId: string; orderId: string; eventType: 'transaction.succeeded' | 'transaction.failed';
+  paymobTxnId: string; orderId: string;   eventType: 'payment.success' | 'payment.failed';
   rawPayload: unknown; correlationId: string; createdAt: string | null; storeId: string;
 }) {
   const { error } = await supabaseAdmin.from('payment_events').insert({
@@ -135,19 +148,20 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 2. Validate payload ──
-    if (!obj || !(obj as any).order?.merchant_order_id || !(obj as any).id) {
+    const paymob = obj as PaymobObj | undefined;
+    if (!paymob || !paymob.order?.merchant_order_id || !paymob.id) {
       await writeError({ errorType: 'unknown', message: 'Invalid payload structure', rawPayload: body, correlationId });
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
-    const orderId = (obj as any).order.merchant_order_id as string;
-    const paymobTxnId = String((obj as any).id);
-    const success = (obj as any).success === true;
-    const eventType = success ? 'transaction.succeeded' : 'transaction.failed';
+    const orderId = paymob.order.merchant_order_id;
+    const paymobTxnId = String(paymob.id);
+    const success = paymob.success === true;
+    const eventType = success ? 'payment.success' : 'payment.failed';
 
     // ── 3. Anti-replay: reject if timestamp is too old (BEFORE event write) ──
-    if ((obj as any).created_at) {
-      const txnTime = new Date((obj as any).created_at).getTime();
+    if (paymob.created_at) {
+      const txnTime = new Date(paymob.created_at).getTime();
       if (isNaN(txnTime) || Date.now() - txnTime > PAYMOB_TXN_WINDOW_MS) {
         return NextResponse.json({ error: 'Transaction timestamp too old' }, { status: 400 });
       }
@@ -159,11 +173,11 @@ export async function POST(req: NextRequest) {
     // ── 5. Persist event to append-only log BEFORE processing ──
     await writeEvent({
       paymobTxnId, orderId, eventType, rawPayload: body,
-      correlationId, createdAt: (obj as any).created_at || null, storeId,
+      correlationId, createdAt: paymob.created_at || null, storeId,
     });
 
     // ── 6. Verify order exists + amount match + validate state transition ──
-    const amountCents = (obj as any).amount_cents || (obj as any).payment_key_claims?.amount_cents;
+    const amountCents = paymob.amount_cents || paymob.payment_key_claims?.amount_cents;
     const { data: order, error: orderErr } = await supabaseAdmin
       .from('orders').select('total, status').eq('id', orderId).single();
 
@@ -186,7 +200,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: msg }, { status: 422 });
     }
 
-    // ── 7. Atomic idempotency lock ──
+    // ── 7. Commit or release stock BEFORE status update ──
+    // (stock operation must succeed before confirming the order to avoid stranding)
+    if (success) {
+      try {
+        await commitOrderStock(orderId);
+      } catch (stockErr) {
+        const msg = stockErr instanceof Error ? stockErr.message : 'Stock commit failed';
+        await markEventFailed(paymobTxnId, msg);
+        await writeError({ eventId: undefined, orderId, errorType: 'stock_decrement_failed', message: msg, rawPayload: body, correlationId, storeId });
+        return NextResponse.json({ error: msg }, { status: 500 });
+      }
+    } else {
+      await releaseOrderStock(orderId);
+    }
+
+    // ── 8. Atomic idempotency lock (only after stock is committed) ──
     const { data: updated } = await supabaseAdmin
       .from('orders')
       .update({
@@ -202,21 +231,11 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (!updated) {
+      // If idempotency lock prevented double-update but stock was already committed,
+      // this shouldn't happen since we committed stock before status update.
+      // Release the stock we just committed to keep things consistent.
+      if (success) { await releaseOrderStock(orderId); }
       return NextResponse.json({ success: true, skipped: true });
-    }
-
-    // ── 8. Commit or release stock based on payment result ──
-    if (success) {
-      try {
-        await commitOrderStock(orderId);
-      } catch (stockErr) {
-        const msg = stockErr instanceof Error ? stockErr.message : 'Stock commit failed';
-        await markEventFailed(paymobTxnId, msg);
-        await writeError({ eventId: undefined, orderId, errorType: 'stock_decrement_failed', message: msg, rawPayload: body, correlationId, storeId });
-        return NextResponse.json({ error: msg }, { status: 500 });
-      }
-    } else {
-      await releaseOrderStock(orderId);
     }
 
     await markEventProcessed(paymobTxnId);

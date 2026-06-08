@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState, useCallback } from 'react';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface PaymentEvent {
   id: string; paymob_txn_id: string; order_id: string;
@@ -35,7 +36,7 @@ export default function AdminPayments() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/reconciliation');
+      const res = await adminFetch('/api/admin/reconciliation');
       if (!res.ok) return;
       const data = await res.json();
       setEvents(data.events || []);
@@ -50,7 +51,7 @@ export default function AdminPayments() {
   const retryEvent = async (eventId: string) => {
     setRetrying(eventId);
     try {
-      const res = await fetch('/api/admin/reconciliation', {
+      const res = await adminFetch('/api/admin/reconciliation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'retry_event', eventId }),
@@ -63,7 +64,7 @@ export default function AdminPayments() {
 
   const resolveError = async (errorId: string) => {
     try {
-      await fetch('/api/admin/reconciliation', {
+      await adminFetch('/api/admin/reconciliation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'resolve_error', errorId }),
@@ -75,7 +76,7 @@ export default function AdminPayments() {
   const retryAllFailed = async () => {
     if (!confirm('Retry ALL failed payment events?')) return;
     try {
-      await fetch('/api/admin/reconciliation', {
+      await adminFetch('/api/admin/reconciliation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'retry_all_failed' }),

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getAdminSession } from '@/lib/auth';
+import { safeJson } from '@/lib/csrf';
 
 export async function POST(req: NextRequest) {
+  const session = await getAdminSession(req);
+  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
@@ -38,7 +42,7 @@ export async function POST(req: NextRequest) {
       .from('review-images')
       .getPublicUrl(fileName);
 
-    return NextResponse.json({ url: urlData.publicUrl });
+    return safeJson({ url: urlData.publicUrl });
   } catch (error) {
     console.error('Upload review image error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

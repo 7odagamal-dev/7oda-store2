@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface Message {
   id: string;
@@ -20,7 +21,7 @@ export default function AdminMessages() {
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch('/api/admin/messages');
+      const res = await adminFetch('/api/admin/messages');
       if (!res.ok) { setMessages([]); return; }
       const data = await res.json();
       setMessages(data || []);
@@ -35,7 +36,7 @@ export default function AdminMessages() {
 
   const updateMessageStatus = async (messageId: string, newStatus: string) => {
     try {
-      const res = await fetch('/api/admin/messages', {
+      const res = await adminFetch('/api/admin/messages', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: messageId, status: newStatus }),
@@ -50,7 +51,7 @@ export default function AdminMessages() {
   const deleteMessage = async (messageId: string) => {
     if (!confirm('⚠️ Permanently delete this message?')) return;
     try {
-      const res = await fetch(`/api/admin/messages?id=${messageId}`, { method: 'DELETE' });
+      const res = await adminFetch(`/api/admin/messages?id=${messageId}`, { method: 'DELETE' });
       const contentType = res.headers.get("content-type");
       let data;
       if (contentType && contentType.indexOf("application/json") !== -1) data = await res.json();

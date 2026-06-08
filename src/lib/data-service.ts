@@ -37,6 +37,7 @@ export class DataService {
         .from(table) as any)
         .select('*')
         .eq('id', id)
+        .eq('store_id', this.storeId)
         .single();
       if (error) return { data: null, error: error.message };
       return { data: data as T, error: null };
@@ -65,6 +66,7 @@ export class DataService {
         .from(table) as any)
         .update(updates)
         .eq('id', id)
+        .eq('store_id', this.storeId)
         .select()
         .single();
       if (error) return { data: null, error: error.message };
@@ -79,7 +81,8 @@ export class DataService {
       const { error }: { error: any } = await (this.client
         .from(table) as any)
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('store_id', this.storeId);
       if (error) return { data: null, error: error.message };
       return { data: null, error: null };
     } catch (e) {

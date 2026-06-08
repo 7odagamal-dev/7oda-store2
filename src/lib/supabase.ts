@@ -37,6 +37,7 @@ export interface Product {
   category: string;
   is_featured: boolean;
   stock: number;
+  reserved_stock?: number;
   main_image: string;
   // extra images optional, accept null to avoid TS errors
   second_image?: string | null;

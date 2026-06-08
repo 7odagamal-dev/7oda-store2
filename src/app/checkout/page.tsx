@@ -38,6 +38,10 @@ export default function Checkout() {
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [couponInfo, setCouponInfo] = useState<{ type: string; value: number; code: string } | null>(null);
 
+  const [idempotencyKey] = useState(() =>
+    typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2, 18)
+  );
+
   const [orderSummary, setOrderSummary] = useState<{
     subtotal: number;
     discount: number;
@@ -143,6 +147,7 @@ export default function Checkout() {
             phone: cleanPhone,
             shipping_cost: shippingCost,
             coupon_code: couponApplied ? couponCode.trim().toUpperCase() : null,
+            idempotency_key: idempotencyKey,
             items: items.map(item => ({
               product_id: item.product.id,
               size: item.size,
@@ -193,6 +198,7 @@ export default function Checkout() {
             phone: cleanPhone,
             shipping_cost: shippingCost,
             coupon_code: couponApplied ? couponCode.trim().toUpperCase() : null,
+            idempotency_key: idempotencyKey,
             items: items.map(item => ({
               product_id: item.product.id,
               size: item.size,

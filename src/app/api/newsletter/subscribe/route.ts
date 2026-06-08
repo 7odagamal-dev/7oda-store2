@@ -16,6 +16,8 @@ function sanitize(str: string): string {
   return str.trim().slice(0, 200);
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
 
@@ -34,16 +36,18 @@ export async function POST(req: NextRequest) {
   const email = sanitize(body.email ?? '');
   const name = body.name ? sanitize(body.name) : null;
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email || !EMAIL_REGEX.test(email)) {
     return NextResponse.json({ error: 'Please enter a valid email address' }, { status: 400 });
   }
 
   const { storeId } = await getStoreContext(req);
+  const normalizedEmail = email.toLowerCase().trim();
 
+  // Check for existing subscriber
   const { data: existing } = await supabaseAdmin
     .from('subscribers')
     .select('id, discount_code')
-    .eq('email', email)
+    .eq('email', normalizedEmail)
     .eq('store_id', storeId)
     .maybeSingle();
 
@@ -54,19 +58,37 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // 1. Generate discount code and create coupon
   const discountCode = generateDiscountCode();
+  const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
 
-  const { error } = await supabaseAdmin.from('subscribers').insert([
-    { email, name, discount_code: discountCode, store_id: storeId },
+  const { error: couponErr } = await supabaseAdmin.from('coupons').insert([{
+    store_id: storeId,
+    code: discountCode,
+    discount_type: 'percentage',
+    discount_value: 10,
+    min_order: 0,
+    max_uses: 1,
+    used_count: 0,
+    expires_at: expiresAt,
+    is_active: true,
+  }]);
+
+  if (couponErr) {
+    console.error('Coupon create error:', couponErr.message);
+  }
+
+  // 2. Subscribe (record in subscribers for newsletter)
+  const { error: subErr } = await supabaseAdmin.from('subscribers').insert([
+    { email: normalizedEmail, name, discount_code: discountCode, store_id: storeId },
   ]);
 
-  if (error) {
-    console.error('Newsletter subscribe error:', error.message);
-    return NextResponse.json({ error: 'Failed to subscribe. Please try again.' }, { status: 500 });
+  if (subErr) {
+    console.error('Newsletter subscribe error:', subErr.message);
   }
 
   return NextResponse.json({
-    message: 'You are subscribed! Use the code below for 10% OFF.',
+    message: 'Welcome! Use the code below for 10% OFF your first order.',
     discountCode,
   });
 }

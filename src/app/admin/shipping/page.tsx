@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useEffect, useState, useCallback } from 'react';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface ShippingRate {
   id: string;
@@ -19,7 +20,7 @@ export default function AdminShipping() {
 
   const fetchRates = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/shipping');
+      const res = await adminFetch('/api/admin/shipping');
       if (res.ok) setRates(await res.json());
     } catch {} finally { setLoading(false); }
   }, []);
@@ -33,7 +34,7 @@ export default function AdminShipping() {
   };
 
   const saveEdit = async (id: string) => {
-    const res = await fetch('/api/admin/shipping', {
+    const res = await adminFetch('/api/admin/shipping', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, cost: editCost, estimated_days: editDays }),

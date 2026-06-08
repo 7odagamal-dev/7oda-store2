@@ -37,7 +37,9 @@ function LoginForm() {
       return
     }
 
-    const redirect = searchParams.get('redirect') || '/profile'
+    const redirectTo = searchParams.get('redirect') || ''
+    const allowed = ['/profile', '/', '/shop', '/cart', '/checkout', '/wishlist', '/auth/register', '/auth/forgot-password']
+    const redirect = allowed.includes(redirectTo) ? redirectTo : '/profile'
     router.push(redirect)
   }
 

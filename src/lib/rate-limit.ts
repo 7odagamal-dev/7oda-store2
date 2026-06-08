@@ -1,5 +1,39 @@
 import { supabaseAdmin } from './supabase-admin';
 
+// ── In-memory rate-limit fallback used when the database is unreachable ──
+// Prevents fail-open attacks: if DB goes down, we still have conservative limits.
+const memoryStore = new Map<string, { count: number; resetAt: number }>();
+const MEMORY_CLEAN_INTERVAL = 60_000; // sweep stale entries every 60s
+
+// Periodic cleanup to prevent unbounded memory growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of memoryStore) {
+    if (now > entry.resetAt) memoryStore.delete(key);
+  }
+}, MEMORY_CLEAN_INTERVAL).unref?.();
+
+function checkMemoryRateLimit(ip: string, endpoint: string, maxAttempts: number, windowMs: number): boolean {
+  const key = `${ip}:${endpoint}`;
+  const now = Date.now();
+  const entry = memoryStore.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    memoryStore.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+
+  if (entry.count >= maxAttempts) return false;
+
+  entry.count += 1;
+  return true;
+}
+
+function clearMemoryRateLimit(ip: string, endpoint: string): void {
+  const key = `${ip}:${endpoint}`;
+  memoryStore.delete(key);
+}
+
 export async function checkRateLimit(ip: string, endpoint: string, maxAttempts: number, windowMs: number): Promise<boolean> {
   if (ip === 'unknown' || !ip) return true;
 
@@ -27,36 +61,50 @@ export async function checkRateLimit(ip: string, endpoint: string, maxAttempts: 
 
   if (error) {
     console.error(`Rate limit DB error for ${endpoint}:`, error.message);
-    return true;
+    // ── SECURITY: Fail-closed with in-memory fallback.
+    //    When DB is unavailable, we use a conservative in-memory rate limit.
+    //    Never return true unconditionally (that would defeat rate limiting).
+    return checkMemoryRateLimit(ip, endpoint, Math.ceil(maxAttempts * 0.5), windowMs);
   }
 
   if (!data) {
-    await supabaseAdmin.from('rate_limits').insert({
+    const { error: insertError } = await supabaseAdmin.from('rate_limits').insert({
       ip, endpoint, count: 1,
       reset_at: new Date(now.getTime() + windowMs).toISOString()
     });
+    if (insertError) {
+      return checkMemoryRateLimit(ip, endpoint, Math.ceil(maxAttempts * 0.5), windowMs);
+    }
     return true;
   }
 
   const resetAt = new Date(data.reset_at);
   if (now > resetAt) {
-    await supabaseAdmin.from('rate_limits').update({
-      count: 1,
-      reset_at: new Date(now.getTime() + windowMs).toISOString()
-    }).eq('ip', ip).eq('endpoint', endpoint);
+    const { error: updateError } = await supabaseAdmin.from('rate_limits')
+      .update({
+        count: 1,
+        reset_at: new Date(now.getTime() + windowMs).toISOString()
+      }).eq('ip', ip).eq('endpoint', endpoint);
+    if (updateError) {
+      return checkMemoryRateLimit(ip, endpoint, Math.ceil(maxAttempts * 0.5), windowMs);
+    }
     return true;
   }
 
   if (data.count >= maxAttempts) return false;
 
-  await supabaseAdmin.from('rate_limits').update({
-    count: data.count + 1
-  }).eq('ip', ip).eq('endpoint', endpoint);
+  const { error: updateError } = await supabaseAdmin.from('rate_limits')
+    .update({ count: data.count + 1 })
+    .eq('ip', ip).eq('endpoint', endpoint);
+  if (updateError) {
+    return checkMemoryRateLimit(ip, endpoint, Math.ceil(maxAttempts * 0.5), windowMs);
+  }
 
   return true;
 }
 
 export async function clearRateLimit(ip: string, endpoint: string): Promise<void> {
   if (ip === 'unknown' || !ip) return;
+  clearMemoryRateLimit(ip, endpoint);
   await supabaseAdmin.from('rate_limits').delete().eq('ip', ip).eq('endpoint', endpoint);
 }

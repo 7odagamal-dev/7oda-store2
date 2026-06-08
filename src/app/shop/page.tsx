@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { Product } from '@/lib/supabase';
+import { DEFAULT_STORE_ID } from '@/lib/store-context';
 import ShopClient from './ShopClient';
 
 export const revalidate = 60; // Revalidate every 60 seconds
@@ -19,6 +20,7 @@ export default async function ShopPage() {
     const { data, error } = await supabase
       .from('products')
       .select('*')
+      .eq('store_id', DEFAULT_STORE_ID)
       .order('created_at', { ascending: false });
 
     if (error) {

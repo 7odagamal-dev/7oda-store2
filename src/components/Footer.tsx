@@ -1,6 +1,13 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function Footer() {
+  const pathname = usePathname();
+  const isAdminPage = pathname?.startsWith('/admin');
+  if (isAdminPage) return null;
+
   return (
     <footer className="bg-card border-t border-border pt-[var(--space-3xl)] pb-[var(--space-2xl)]">
       <div className="fsa-container">

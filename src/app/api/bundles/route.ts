@@ -14,11 +14,12 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.error('Public bundles fetch error:', error.message);
-      return NextResponse.json({ bundles: [] });
+      return NextResponse.json({ error: 'Failed to fetch bundles' }, { status: 500 });
     }
 
     return NextResponse.json({ bundles: bundles ?? [] });
-  } catch {
-    return NextResponse.json({ bundles: [] });
+  } catch (error) {
+    console.error('Bundles GET error:', error);
+    return NextResponse.json({ error: 'Failed to fetch bundles' }, { status: 500 });
   }
 }

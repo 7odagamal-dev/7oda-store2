@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAdminSession } from '@/lib/auth';
 import { assertValidOrderTransition } from '@/lib/order-state';
 import { filterByStore } from '@/lib/db';
-import { csrfGuard } from '@/lib/csrf';
+import { csrfGuard, safeJson } from '@/lib/csrf';
 
 export async function GET(req: NextRequest) {
   const session = await getAdminSession(req);
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-      const success = event.event_type === 'transaction.succeeded';
+      const success = event.event_type === 'payment.success';
         const newStatus = success ? 'confirmed' : 'cancelled';
 
         const { data: orderForTransition } = await supabaseAdmin

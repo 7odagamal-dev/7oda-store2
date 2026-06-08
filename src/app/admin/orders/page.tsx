@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Order } from '@/lib/supabase';
+import { adminFetch } from '@/lib/admin-fetch';
 
 const deliveryStatuses = [
   { value: 'pending', label: 'New', color: 'bg-amber-100 text-amber-700' },
@@ -30,7 +31,7 @@ export default function AdminOrders() {
       const params = new URLSearchParams({ page: String(p), limit: String(limit) });
       if (searchTerm) params.set('search', searchTerm);
       if (statusFilter !== 'all') params.set('status', statusFilter);
-      const res = await fetch(`/api/admin/orders?${params}`);
+      const res = await adminFetch(`/api/admin/orders?${params}`);
       if (!res.ok) { setOrders([]); return; }
       const response = await res.json();
       setOrders(response.data || []);
@@ -47,7 +48,7 @@ export default function AdminOrders() {
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     if (!confirm(`Change order status to "${newStatus}"?`)) return;
     try {
-      const res = await fetch('/api/admin/orders', {
+      const res = await adminFetch('/api/admin/orders', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: orderId, status: newStatus, delivery_status: newStatus === 'delivered' ? 'delivered' : newStatus }),
@@ -64,7 +65,7 @@ export default function AdminOrders() {
   const deleteOrder = async (orderId: string) => {
     if (!confirm('⚠️ Permanently delete this order? This cannot be undone.')) return;
     try {
-      const res = await fetch(`/api/admin/orders?id=${orderId}`, { method: 'DELETE' });
+      const res = await adminFetch(`/api/admin/orders?id=${orderId}`, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to delete');

@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState, useCallback } from 'react';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface Coupon {
   id: string;
@@ -34,7 +35,7 @@ export default function AdminCoupons() {
 
   const fetchCoupons = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/coupons');
+      const res = await adminFetch('/api/admin/coupons');
       if (res.ok) setCoupons(await res.json());
     } catch {} finally { setLoading(false); }
   }, []);
@@ -46,7 +47,7 @@ export default function AdminCoupons() {
     if (!form.code || !form.discount_value) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/coupons', {
+      const res = await adminFetch('/api/admin/coupons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -64,7 +65,7 @@ export default function AdminCoupons() {
   };
 
   const toggleActive = async (coupon: Coupon) => {
-    const res = await fetch('/api/admin/coupons', {
+    const res = await adminFetch('/api/admin/coupons', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: coupon.id, is_active: !coupon.is_active }),
@@ -76,7 +77,7 @@ export default function AdminCoupons() {
 
   const deleteCoupon = async (id: string) => {
     if (!confirm('Delete this coupon permanently?')) return;
-    const res = await fetch('/api/admin/coupons', {
+    const res = await adminFetch('/api/admin/coupons', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),

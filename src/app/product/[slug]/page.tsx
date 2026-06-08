@@ -23,8 +23,8 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState<string>('');
+  const [sizeQty, setSizeQty] = useState<Record<string, number>>({});
+  const [targetQty, setTargetQty] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [flashSale, setFlashSale] = useState<{ discount_percentage: number; ends_at: string } | null>(null);
   const [relevantBundles, setRelevantBundles] = useState<Array<{ id: string; name: string; description: string | null; products: string[]; discount_type: string; discount_value: number; image: string | null }>>([]);
@@ -75,26 +75,48 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
     fetchProduct();
   }, [resolvedParams.slug]);
 
-  const incrementQuantity = () => {
-    const maxLimit = product?.stock || 10;
-    if (quantity < maxLimit) {
-      setQuantity(prev => prev + 1);
-    }
+  const availableStock = product ? Math.max(0, product.stock - (product.reserved_stock ?? 0)) : 0;
+  const isLowStock = availableStock > 0 && availableStock <= 5;
+  const isOutOfStock = availableStock <= 0;
+
+  const allocatedTotal = Object.values(sizeQty).reduce((a, b) => a + b, 0);
+  const isMultiMode = targetQty > 1;
+  const isBalanced = allocatedTotal === targetQty;
+  const totalQty = targetQty;
+  const selectedSizes = Object.entries(sizeQty).filter(([size]) => sizeQty[size] > 0).map(([size]) => size);
+
+  const incrementSize = (size: string) => {
+    if (allocatedTotal >= targetQty) return;
+    setSizeQty(prev => ({ ...prev, [size]: (prev[size] || 0) + 1 }));
   };
 
-  const decrementQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(prev => prev - 1);
-    }
+  const decrementSize = (size: string) => {
+    setSizeQty(prev => {
+      const current = prev[size] || 0;
+      if (current <= 1) {
+        const copy = { ...prev };
+        delete copy[size];
+        return Object.keys(copy).length > 0 ? copy : {};
+      }
+      return { ...prev, [size]: current - 1 };
+    });
   };
 
   const handleAddToCart = () => {
-    if (!selectedSize) {
+    if (allocatedTotal === 0) {
       alert('Please select a size');
       return;
     }
+    if (isMultiMode && !isBalanced) {
+      alert(`Please distribute all ${targetQty} items across sizes (${allocatedTotal}/${targetQty} allocated)`);
+      return;
+    }
     setIsAdding(true);
-    addItem(product!, selectedSize, quantity);
+    for (const [size, qty] of Object.entries(sizeQty)) {
+      if (qty > 0) {
+        addItem(product!, size, qty);
+      }
+    }
     router.push('/cart');
   };
 
@@ -198,34 +220,65 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
 
             {/* Quantity */}
             <div className="mt-[var(--space-2xl)]">
-              <h3 className="text-[var(--text-xs)] text-secondary font-medium mb-[var(--space-sm)] uppercase tracking-widest">Quantity</h3>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-[var(--space-md)]">
-                <div className="flex items-center inline-flex border border-border rounded-[var(--radius-xl)] bg-card shadow-sm">
+              <div className="flex items-center justify-between mb-[var(--space-sm)]">
+                <h3 className="text-[var(--text-xs)] text-secondary font-medium uppercase tracking-widest">
+                  Quantity: {targetQty}
+                </h3>
+                <span className="text-[var(--text-xs)] text-secondary">Max {Math.min(availableStock, 10)}</span>
+              </div>
+              <div className="flex items-center gap-[var(--space-md)]">
+                <div className="flex items-center border border-border rounded-[var(--radius-xl)] bg-card shadow-sm">
                   <button
-                    onClick={decrementQuantity}
+                    onClick={() => {
+                      if (targetQty <= 1) return;
+                      const exitingMulti = targetQty === 2;
+                      setTargetQty(prev => prev - 1);
+                      if (exitingMulti) {
+                        setSizeQty(product?.sizes?.[0] ? { [product.sizes[0]]: 1 } : {});
+                      }
+                    }}
+                    disabled={targetQty <= 1}
                     aria-label="Decrease quantity"
-                    className="touch-target-sm px-[var(--space-md)] py-[var(--space-sm)] text-secondary hover:text-foreground hover:bg-card-hover transition-colors rounded-l-[var(--radius-xl)]"
+                    className="touch-target-sm px-[var(--space-md)] py-[var(--space-sm)] text-secondary hover:text-foreground hover:bg-card-hover transition-colors rounded-l-[var(--radius-xl)] disabled:opacity-30"
                   >
                     −
                   </button>
                   <span className="px-[var(--space-lg)] py-[var(--space-sm)] font-medium text-[var(--text-sm)] border-x border-border min-w-[3rem] text-center">
-                    {quantity}
+                    {totalQty}
                   </span>
                   <button
-                    onClick={incrementQuantity}
+                    onClick={() => {
+                      const maxLimit = Math.min(availableStock, 10);
+                      if (targetQty >= maxLimit) return;
+                      const enteringMulti = targetQty === 1;
+                      setTargetQty(prev => prev + 1);
+                      if (enteringMulti) {
+                        setSizeQty({});
+                      }
+                    }}
+                    disabled={targetQty >= Math.min(availableStock, 10)}
                     aria-label="Increase quantity"
-                    className="touch-target-sm px-[var(--space-md)] py-[var(--space-sm)] text-secondary hover:text-foreground hover:bg-card-hover transition-colors rounded-r-[var(--radius-xl)]"
+                    className="touch-target-sm px-[var(--space-md)] py-[var(--space-sm)] text-secondary hover:text-foreground hover:bg-card-hover transition-colors rounded-r-[var(--radius-xl)] disabled:opacity-30"
                   >
                     +
                   </button>
                 </div>
-                {quantity > 1 && (
+                {isMultiMode && !isBalanced && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-accent-deep text-[var(--text-xs)] font-medium bg-accent/10 px-[var(--space-md)] py-[var(--space-sm)] rounded-full flex items-center gap-[var(--space-sm)]"
+                    className="text-rose-500 text-[var(--text-xs)] font-medium bg-rose-50 px-[var(--space-md)] py-[var(--space-sm)] rounded-full flex items-center gap-[var(--space-sm)]"
                   >
-                    <span>✦</span> Add multiple items to qualify for bundle discounts
+                    <span>✦</span> Allocate {targetQty - allocatedTotal} more
+                  </motion.div>
+                )}
+                {isMultiMode && isBalanced && allocatedTotal > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-green-600 text-[var(--text-xs)] font-medium bg-green-50 px-[var(--space-md)] py-[var(--space-sm)] rounded-full"
+                  >
+                    ✓ Allocated
                   </motion.div>
                 )}
               </div>
@@ -238,22 +291,59 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
                 animate={{ opacity: 1, y: 0 }}
                 className="p-[var(--space-lg)] border border-border rounded-[var(--radius-xl)] bg-card hover:border-accent/30 transition-all"
               >
-                <h3 className="text-[var(--text-xs)] text-accent font-semibold uppercase mb-[var(--space-sm)] tracking-widest">Select Size</h3>
+                <div className="flex items-center justify-between mb-[var(--space-sm)]">
+                  <h3 className="text-[var(--text-xs)] text-accent font-semibold uppercase tracking-widest">
+                    {isMultiMode ? 'Distribute across sizes' : 'Select Size'}
+                  </h3>
+                  <span className={`text-[var(--text-xs)] font-medium ${isLowStock ? 'text-rose-500' : 'text-green-600'}`}>
+                    {isLowStock ? `Only ${availableStock} left` : `${availableStock} available`}
+                  </span>
+                </div>
                 <div className="flex flex-wrap gap-[var(--space-sm)]">
-                  {product.sizes?.map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => setSelectedSize(size)}
-                      className={`py-[var(--space-sm)] px-[var(--space-lg)] text-[var(--text-xs)] font-medium uppercase rounded-full transition-all duration-300 ${
-                        selectedSize === size
-                          ? 'bg-accent text-white shadow-sm scale-105'
-                          : 'bg-card-hover text-secondary hover:bg-border hover:text-foreground'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
+                  {product.sizes?.map((size) => {
+                    const qty = sizeQty[size] || 0;
+                    return isMultiMode ? (
+                      <div key={size} className="flex flex-col items-center gap-1">
+                        <span className="text-[var(--text-xs)] text-secondary font-medium uppercase">{size}</span>
+                        <div className="flex items-center border border-border rounded-full overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => decrementSize(size)}
+                            disabled={qty === 0}
+                            className="px-2 py-1 text-[var(--text-xs)] hover:bg-card-hover disabled:opacity-30 transition-colors"
+                          >
+                            −
+                          </button>
+                          <span className="px-3 py-1 text-[var(--text-xs)] font-medium min-w-[2rem] text-center border-x border-border">
+                            {qty}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => incrementSize(size)}
+                            disabled={allocatedTotal >= targetQty}
+                            className="px-2 py-1 text-[var(--text-xs)] hover:bg-card-hover disabled:opacity-30 transition-colors"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => {
+                          setSizeQty({ [size]: 1 });
+                        }}
+                        className={`py-[var(--space-sm)] px-[var(--space-lg)] text-[var(--text-xs)] font-medium uppercase rounded-full transition-all duration-300 ${
+                          qty > 0
+                            ? 'bg-accent text-white shadow-sm scale-105'
+                            : 'bg-card-hover text-secondary hover:bg-border hover:text-foreground'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
                 </div>
               </motion.div>
             </div>
@@ -261,20 +351,23 @@ export default function ProductDetails({ params }: { params: Promise<{ slug: str
             {/* Add to Cart */}
             <div className="mt-[var(--space-3xl)]">
               <button
-                disabled={isAdding || product.stock <= 0}
+                disabled={isAdding || isOutOfStock || allocatedTotal === 0 || (isMultiMode && !isBalanced)}
                 className={`w-full py-[var(--space-lg)] px-[var(--space-xl)] text-[var(--text-sm)] font-semibold uppercase tracking-widest rounded-[var(--radius-xl)] transition-all duration-300 ${
-                  product.stock <= 0
+                  isOutOfStock || (isMultiMode && !isBalanced) || allocatedTotal === 0
                     ? 'bg-border text-secondary cursor-not-allowed'
                     : 'bg-accent text-white hover:bg-accent-deep shadow-md hover:shadow-lg active:scale-[0.98]'
                 }`}
                 onClick={handleAddToCart}
               >
-                {isAdding ? 'Adding...' : product.stock <= 0 ? 'Out of Stock' : 'Add to Cart — Checkout'}
+                {isAdding ? 'Adding...' : isOutOfStock ? 'Out of Stock' : allocatedTotal === 0 ? 'Select a size' : isMultiMode && !isBalanced ? `Allocate ${targetQty - allocatedTotal} more` : isLowStock ? `Only ${availableStock} Left — Add to Cart` : 'Add to Cart — Checkout'}
               </button>
-              {quantity > 1 && (
-                <p className="text-center text-secondary text-[var(--text-xs)] mt-[var(--space-sm)] italic">
-                  * Bundle discounts (if any) will be applied at checkout.
-                </p>
+              {allocatedTotal > 0 && isBalanced && selectedSizes.length > 0 && (
+                <div className="text-center text-secondary text-[var(--text-xs)] mt-[var(--space-sm)] space-y-1">
+                  <p>{availableStock} item{availableStock !== 1 ? 's' : ''} available</p>
+                  <p className="text-accent font-medium">
+                    {selectedSizes.map(s => `${s} × ${sizeQty[s]}`).join(', ')}
+                  </p>
+                </div>
               )}
             </div>
           </motion.div>

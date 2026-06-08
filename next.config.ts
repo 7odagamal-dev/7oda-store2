@@ -11,14 +11,18 @@ function buildCSP(): string {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
-    "connect-src 'self' https://*.supabase.co",
-    "worker-src 'self' blob:",
+    "connect-src 'self' https://*.supabase.co https://accept.paymob.com https://*.paymob.com",
+    "frame-src 'self' https://accept.paymob.com",
     "frame-ancestors 'none'",
+    "form-action 'self'",
+    "base-uri 'self'",
+    "worker-src 'self' blob:",
   ].join('; ');
 }
 
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

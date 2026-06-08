@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     const { storeId } = await getStoreContext(req)
 
-    let query = filterByStore(
+    const query = filterByStore(
       supabaseAdmin
         .from('orders')
         .select('id, display_id, status, total, items, payment_method, created_at')
@@ -29,22 +29,29 @@ export async function GET(req: NextRequest) {
     const { data: orders, error } = await query
 
     if (error) {
-      if (error.message?.includes('column') && error.message?.includes('user_id')) {
-        return NextResponse.json({ orders: [] })
-      }
       return NextResponse.json({ error: 'Database error' }, { status: 500 })
     }
 
     interface OrderItem {
-      product_id: string
-      name: string
-      size: string
-      quantity: number
-      price: number
-      image: string | null
+      product_id?: string
+      name?: string
+      size?: string
+      quantity?: number
+      price?: number
+      image?: string | null
     }
 
-    const sanitized = (orders || []).map((o: any) => ({
+    interface OrderRow {
+      id: string
+      display_id: string
+      status: string
+      total: number
+      payment_method: string
+      created_at: string
+      items: OrderItem[] | null
+    }
+
+    const sanitized = (orders || []).map((o: OrderRow) => ({
       id: o.id,
       display_id: o.display_id,
       status: o.status,
@@ -61,7 +68,8 @@ export async function GET(req: NextRequest) {
     }))
 
     return NextResponse.json({ orders: sanitized })
-  } catch {
-    return NextResponse.json({ orders: [] })
+  } catch (error) {
+    console.error('Orders by-user GET error:', error)
+    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 })
   }
 }

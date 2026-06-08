@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { adminFetch } from '@/lib/admin-fetch'
 
 export default function BulkProductsPage() {
   const [file, setFile] = useState<File | null>(null)
@@ -18,7 +19,7 @@ export default function BulkProductsPage() {
     form.append('file', file)
 
     try {
-      const res = await fetch('/api/admin/products/bulk', { method: 'POST', body: form })
+      const res = await adminFetch('/api/admin/products/bulk', { method: 'POST', body: form })
       const data = await res.json()
       setResult(data)
     } catch {

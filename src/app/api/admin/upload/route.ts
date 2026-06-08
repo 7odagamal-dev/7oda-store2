@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAdminSession } from '@/lib/auth';
-import { csrfGuard } from '@/lib/csrf';
+import { csrfGuard, safeJson } from '@/lib/csrf';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       .from('product-images')
       .getPublicUrl(uploadData.path);
 
-    return NextResponse.json({ url: urlData.publicUrl }, { status: 201 });
+    return safeJson({ url: urlData.publicUrl }, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[Admin Upload] Unexpected error:', message);

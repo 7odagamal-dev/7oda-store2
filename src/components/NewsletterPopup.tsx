@@ -10,6 +10,7 @@ export default function NewsletterPopup() {
   const [isVisible, setIsVisible] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
   const [step, setStep] = useState<'form' | 'success' | 'error'>('form');
   const [discountCode, setDiscountCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,11 +44,16 @@ export default function NewsletterPopup() {
     setLoading(true);
     setMessage('');
 
+    if (!password || password.length < 6) {
+      setMessage('Password must be at least 6 characters');
+      return;
+    }
+
     try {
       const res = await fetch('/api/newsletter/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), name: name.trim() || undefined }),
+        body: JSON.stringify({ email: email.trim(), name: name.trim() || undefined, password }),
       });
 
       const data = await res.json();
@@ -134,6 +140,16 @@ export default function NewsletterPopup() {
                         placeholder="your@email.com"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
+                        className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-sm text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none transition-all"
+                        onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="password"
+                        placeholder="Create a password (min 6 characters)"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
                         className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-sm text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none transition-all"
                         onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                       />

@@ -15,11 +15,12 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.error('Active flash sales fetch error:', error.message);
-      return NextResponse.json({ sales: [] });
+      return NextResponse.json({ error: 'Failed to fetch flash sales' }, { status: 500 });
     }
 
     return NextResponse.json({ sales: sales ?? [] });
-  } catch {
-    return NextResponse.json({ sales: [] });
+  } catch (error) {
+    console.error('Flash sales GET error:', error);
+    return NextResponse.json({ error: 'Failed to fetch flash sales' }, { status: 500 });
   }
 }

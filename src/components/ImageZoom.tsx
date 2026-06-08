@@ -3,7 +3,9 @@
 import { useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 
-const isTouchDevice = typeof navigator !== 'undefined' && 'ontouchstart' in window;
+function getIsTouchDevice(): boolean {
+  return typeof window !== 'undefined' && 'ontouchstart' in window;
+}
 
 interface ImageZoomProps {
   src: string;
@@ -11,6 +13,7 @@ interface ImageZoomProps {
 }
 
 export default function ImageZoom({ src, alt }: ImageZoomProps) {
+  const [isTouchDevice] = useState(getIsTouchDevice);
   const [showZoom, setShowZoom] = useState(false);
   const [touchZoom, setTouchZoom] = useState(false);
   const [pos, setPos] = useState({ x: 50, y: 50 });
@@ -32,7 +35,7 @@ export default function ImageZoom({ src, alt }: ImageZoomProps) {
       setShowZoom(true);
     }, 500);
     setLongPressTimer(timer);
-  }, []);
+  }, [isTouchDevice]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (longPressTimer) {
@@ -68,7 +71,7 @@ export default function ImageZoom({ src, alt }: ImageZoomProps) {
       setTouchZoom(false);
       setShowZoom(false);
     }
-  }, [touchZoom]);
+  }, [isTouchDevice, touchZoom]);
 
   return (
     <div

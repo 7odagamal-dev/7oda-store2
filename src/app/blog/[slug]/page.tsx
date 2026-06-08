@@ -3,6 +3,7 @@ import { DEFAULT_STORE_ID } from '@/lib/store-context';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import sanitizeHtml from 'sanitize-html';
 
 interface BlogPost {
   id: string;
@@ -48,6 +49,18 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   if (!post) notFound();
 
+  const safeContent = sanitizeHtml(post.content, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'figure', 'figcaption', 'hr']),
+    allowedAttributes: {
+      a: ['href', 'target', 'rel'],
+      img: ['src', 'alt', 'width', 'height', 'loading'],
+      '*': ['class', 'id'],
+    },
+    allowedSchemes: ['http', 'https', 'mailto'],
+    disallowedTagsMode: 'discard',
+    allowedSchemesByTag: { img: ['https', 'data'] },
+  });
+
   return (
     <div className="min-h-screen bg-[#F8F9FB]">
       <article className="max-w-3xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
@@ -88,7 +101,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         <div
           className="prose prose-sm max-w-none text-[#1A1A1A] prose-headings:font-bold prose-headings:font-[family-name:var(--font-playfair)] prose-a:text-[#8BA4B8] prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl"
-          dangerouslySetInnerHTML={{ __html: post.content }}
+          dangerouslySetInnerHTML={{ __html: safeContent }}
         />
 
         {post.tags.length > 0 && (

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Product } from '@/lib/supabase';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface ProductImage {
   id: string;
@@ -39,12 +40,10 @@ export default function AdminProducts() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/products');
+      const res = await adminFetch('/api/admin/products');
       if (!res.ok) throw new Error('Unauthorized');
       const data = await res.json();
-      console.log('API response:', JSON.stringify(data, null, 2));
       const list = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
-      console.log('list type:', typeof list, Array.isArray(list), list?.length);
       setProducts(list);
     } catch (error) {
       console.error('fetchProducts error:', error);
@@ -83,7 +82,7 @@ export default function AdminProducts() {
     try {
       const form = new FormData();
       form.append('file', file);
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: form });
+      const res = await adminFetch('/api/admin/upload', { method: 'POST', body: form });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Upload failed');
@@ -161,7 +160,7 @@ export default function AdminProducts() {
     try {
       const method = editingProduct ? 'PUT' : 'POST';
       const body = editingProduct ? { id: editingProduct.id, ...productData } : productData;
-      const res = await fetch('/api/admin/products', {
+      const res = await adminFetch('/api/admin/products', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -185,7 +184,7 @@ export default function AdminProducts() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this product?')) return;
     try {
-      const res = await fetch('/api/admin/products', {
+      const res = await adminFetch('/api/admin/products', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),

@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Order } from '@/lib/supabase';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface FinanceStats {
   totalRevenue: number;
@@ -27,21 +28,54 @@ interface TopProduct {
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+interface StatsResponse {
+  totalProducts: number;
+  totalOrders: number;
+  pendingOrders: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  totalRevenue: number;
+  avgOrderValue: number;
+  conversionRate: number;
+  monthly: Array<{ month: string; revenue: number; count: number }>;
+  topProducts: Array<{ name: string; qty: number; revenue: number }>;
+}
+
 export default function FinancePage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartView, setChartView] = useState<'revenue' | 'orders'>('revenue');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [serverStats, setServerStats] = useState<StatsResponse | null>(null);
 
   const stats = useMemo((): FinanceStats => {
+    if (serverStats) {
+      return {
+        totalRevenue: serverStats.totalRevenue,
+        totalOrders: serverStats.totalOrders,
+        deliveredOrders: serverStats.deliveredOrders,
+        pendingOrders: serverStats.pendingOrders,
+        cancelledOrders: serverStats.cancelledOrders,
+        averageOrder: serverStats.avgOrderValue,
+      };
+    }
     const delivered = orders.filter(o => o.delivery_status === 'delivered' || o.status === 'delivered');
     const pending = orders.filter(o => o.status === 'pending' || o.status === 'confirmed');
     const cancelled = orders.filter(o => o.status === 'cancelled');
     const totalRevenue = delivered.reduce((sum, o) => sum + (o.total || 0), 0);
     const averageOrder = delivered.length > 0 ? Math.round(totalRevenue / delivered.length) : 0;
     return { totalRevenue, totalOrders: orders.length, deliveredOrders: delivered.length, pendingOrders: pending.length, cancelledOrders: cancelled.length, averageOrder };
-  }, [orders]);
+  }, [orders, serverStats]);
 
   const monthlyData = useMemo((): MonthlyData[] => {
+    if (serverStats?.monthly) {
+      return serverStats.monthly.map(m => ({
+        month: m.month,
+        revenue: m.revenue,
+        orders: m.count,
+      }));
+    }
     const map: Record<string, MonthlyData> = {};
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
@@ -59,9 +93,12 @@ export default function FinancePage() {
       }
     });
     return Object.values(map);
-  }, [orders]);
+  }, [orders, serverStats]);
 
   const topProducts = useMemo((): TopProduct[] => {
+    if (serverStats?.topProducts) {
+      return serverStats.topProducts.map(p => ({ name: p.name, count: p.qty, revenue: p.revenue }));
+    }
     const map: Record<string, TopProduct> = {};
     orders.forEach(o => {
       o.items?.forEach(item => {
@@ -75,22 +112,32 @@ export default function FinancePage() {
       });
     });
     return Object.values(map).sort((a, b) => b.count - a.count).slice(0, 5);
-  }, [orders]);
+  }, [orders, serverStats]);
 
-  const fetchOrders = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/orders');
-      if (!res.ok) return;
-      const response = await res.json();
-      setOrders(response.data || []);
+      setLoading(true);
+      const [statsRes, ordersRes] = await Promise.all([
+        adminFetch('/api/admin/stats'),
+        adminFetch(`/api/admin/orders?page=${page}&limit=50`),
+      ]);
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setServerStats(statsData);
+      }
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        setOrders(ordersData.data || []);
+        setTotalPages(ordersData.totalPages || 1);
+      }
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -244,7 +291,7 @@ export default function FinancePage() {
         </div>
       )}
 
-      {}
+      {/* Order Details Table */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-sm">
         <h2 className="text-xl font-[family-name:var(--font-playfair)] text-[#1A1A1A] mb-4">Order Details</h2>
         {loading ? (
@@ -254,32 +301,52 @@ export default function FinancePage() {
         ) : orders.length === 0 ? (
           <p className="text-[#9CA3AF] text-center py-8 font-[family-name:var(--font-playfair)]">No orders found</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[#E5E7EB]">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Order</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Customer</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F0F0F0]">
-                {orders.map((order) => (
-                  /* Table row with String() safety wrapper and hover class */
-                  <tr key={order.id} className="hover:bg-[#F8F9FB] transition-colors cursor-hover">
-                    <td className="px-4 py-3 text-[#1A1A1A] text-sm font-medium">#{order.id ? String(order.id).slice(0, 8) : 'N/A'}</td>
-                    <td className="px-4 py-3 text-[#6B7280] text-sm">{order.customer_name}</td>
-                    <td className="px-4 py-3 text-[#8BA4B8] font-medium text-sm">{order.total} EGP</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusStyle(order.status)}`}>{order.status}</span>
-                    </td>
-                    <td className="px-4 py-3 text-[#9CA3AF] text-sm">{new Date(order.created_at).toLocaleDateString('en-US')}</td>
+          <div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[#E5E7EB]">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Order</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Customer</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Date</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#F0F0F0]">
+                  {orders.map((order) => (
+                    <tr key={order.id} className="hover:bg-[#F8F9FB] transition-colors cursor-hover">
+                      <td className="px-4 py-3 text-[#1A1A1A] text-sm font-medium">#{order.id ? String(order.id).slice(0, 8) : 'N/A'}</td>
+                      <td className="px-4 py-3 text-[#6B7280] text-sm">{order.customer_name}</td>
+                      <td className="px-4 py-3 text-[#8BA4B8] font-medium text-sm">{order.total} EGP</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusStyle(order.status)}`}>{order.status}</span>
+                      </td>
+                      <td className="px-4 py-3 text-[#9CA3AF] text-sm">{new Date(order.created_at).toLocaleDateString('en-US')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 mt-6">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="px-4 py-2 text-sm font-medium rounded-xl bg-[#F3F5F8] text-[#1A1A1A] hover:bg-[#E5E7EB] disabled:opacity-40 transition-all"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-[#6B7280]">Page {page} of {totalPages}</span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="px-4 py-2 text-sm font-medium rounded-xl bg-[#F3F5F8] text-[#1A1A1A] hover:bg-[#E5E7EB] disabled:opacity-40 transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

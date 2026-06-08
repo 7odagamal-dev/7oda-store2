@@ -144,8 +144,12 @@ export async function getAdminSession(req: NextRequest): Promise<AdminSession> {
         body: { user_role: user[0].role },
       });
     }
-  } else {
-    role = 'superadmin';
+  }
+
+  // ── SECURITY: Incomplete session rows (no user_id, no user_role) must NOT
+  //    default to superadmin. Only explicitly granted roles are acceptable.
+  if (!role) {
+    return { valid: false, storeId: null, role: null, userId: null };
   }
 
   return {
@@ -195,7 +199,8 @@ export async function createSession(params: {
     maxAge: SESSION_HOURS * 60 * 60,
     path: '/',
   });
-  response.cookies.set('csrf-token', token.slice(0, 16), {
+  const csrfToken = randomBytes(16).toString('hex');
+  response.cookies.set('csrf-token', csrfToken, {
     httpOnly: false,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',

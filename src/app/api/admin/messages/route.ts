@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAdminSession } from '@/lib/auth';
 import { filterByStore } from '@/lib/db';
-import { csrfGuard } from '@/lib/csrf';
+import { csrfGuard, safeJson } from '@/lib/csrf';
 
 export async function GET(req: NextRequest) {
   const session = await getAdminSession(req);
@@ -38,7 +38,7 @@ export async function PUT(req: NextRequest) {
       console.error('Failed to update message:', error.message);
       return NextResponse.json({ error: 'Failed to update message' }, { status: 500 });
     }
-    return NextResponse.json(data);
+    return safeJson(data);
   } catch (err) {
     return NextResponse.json({ error: 'Invalid JSON input' }, { status: 400 });
   }
@@ -68,7 +68,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to delete message' }, { status: 500 });
     }
 
-    return NextResponse.json({ 
+    return safeJson({ 
       success: true, 
       message: 'Message deleted successfully' 
     }, { status: 200 });

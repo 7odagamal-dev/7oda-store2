@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAdminSession } from '@/lib/auth';
-import { csrfGuard } from '@/lib/csrf';
+import { csrfGuard, safeJson } from '@/lib/csrf';
 
 export async function GET(req: NextRequest) {
   const session = await getAdminSession(req);
@@ -17,13 +17,14 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.error('Bundles fetch error:', error.message);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ bundles });
   } catch (error) {
-    console.error('Bundles GET error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Bundles GET error:', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -70,13 +71,14 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error('Bundle create error:', error.message);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ bundle });
+    return safeJson({ bundle });
   } catch (error) {
-    console.error('Bundles POST error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Bundles POST error:', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -117,22 +119,25 @@ export async function PUT(req: NextRequest) {
     if (body.image !== undefined) updates.image = body.image?.trim().slice(0, 500) || null;
     if (body.is_active !== undefined) updates.is_active = body.is_active === true;
 
+    const storeId = session.storeId || '00000000-0000-0000-0000-000000000001';
     const { data: bundle, error } = await supabaseAdmin
       .from('bundles')
       .update(updates)
       .eq('id', body.id)
+      .eq('store_id', storeId)
       .select()
       .single();
 
     if (error) {
       console.error('Bundle update error:', error.message);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ bundle });
+    return safeJson({ bundle });
   } catch (error) {
-    console.error('Bundles PUT error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Bundles PUT error:', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -147,19 +152,22 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Bundle ID is required' }, { status: 400 });
     }
 
+    const storeId = session.storeId || '00000000-0000-0000-0000-000000000001';
     const { error } = await supabaseAdmin
       .from('bundles')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('store_id', storeId);
 
     if (error) {
       console.error('Bundle delete error:', error.message);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return safeJson({ success: true });
   } catch (error) {
-    console.error('Bundles DELETE error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Bundles DELETE error:', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

@@ -13,35 +13,35 @@ export default function HomeClient({ products }: { products: Product[] }) {
       <HeroSection />
       
       {/* Featured Collection */}
-      <section className="fsa-section bg-card">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-12 lg:py-20 bg-card">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.7, ease: "easeOut" }}
-            className="text-center mb-[var(--space-3xl)]"
+            className="text-center mb-16 lg:mb-20"
           >
-            <span className="text-[var(--text-xs)] tracking-[0.2em] text-accent uppercase mb-[var(--space-sm)] block">
+            <span className="text-xs tracking-[0.2em] text-accent uppercase mb-2 block">
               New Arrivals
             </span>
-            <h2 className="text-[var(--text-3xl)] md:text-[var(--text-4xl)] font-[family-name:var(--font-playfair)] tracking-wide text-foreground mb-[var(--space-md)]">
+            <h2 className="text-3xl md:text-4xl font-[family-name:var(--font-playfair)] tracking-wide text-foreground mb-4">
               The Latest Collection
             </h2>
-            <p className="text-secondary max-w-md mx-auto text-[var(--text-sm)] leading-relaxed">
+            <p className="text-secondary max-w-md mx-auto text-sm leading-relaxed">
               Discover our premium pieces crafted with meticulous attention to detail
             </p>
           </motion.div>
 
           {products.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[var(--space-lg)]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {products.map((product, index) => (
                 <ProductCard key={product.id} product={product} index={index} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-[var(--space-3xl)] text-secondary">
-              <p className="text-[var(--text-lg)] font-[family-name:var(--font-playfair)]">No featured pieces yet</p>
+            <div className="text-center py-16 lg:py-20 text-secondary">
+              <p className="text-lg font-[family-name:var(--font-playfair)]">No featured pieces yet</p>
             </div>
           )}
 
@@ -50,11 +50,11 @@ export default function HomeClient({ products }: { products: Product[] }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="text-center mt-[var(--space-3xl)]"
+            className="text-center mt-16 lg:mt-20"
           >
             <Link
               href="/shop"
-              className="inline-flex items-center gap-[var(--space-sm)] px-[var(--space-xl)] py-[var(--space-sm)] border-2 border-accent text-accent text-[var(--text-sm)] tracking-wider uppercase font-medium rounded-full hover:bg-accent hover:text-white transition-all duration-300 group"
+              className="inline-flex items-center gap-2 px-8 py-2 border-2 border-accent text-accent text-sm tracking-wider uppercase font-medium rounded-full hover:bg-accent hover:text-white transition-all duration-300 group"
             >
               View All Pieces
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">
@@ -66,22 +66,22 @@ export default function HomeClient({ products }: { products: Product[] }) {
       </section>
 
       {/* Editorial Section */}
-      <section className="fsa-section bg-background">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-[var(--space-3xl)] items-center">
+      <section className="py-12 lg:py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-16 lg:gap-20 items-center">
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.7, ease: "easeOut" }}
             >
-              <span className="text-[var(--text-xs)] tracking-[0.2em] text-accent uppercase mb-[var(--space-sm)] block">
+              <span className="text-xs tracking-[0.2em] text-accent uppercase mb-2 block">
                 Our Philosophy
               </span>
-              <h2 className="text-[var(--text-3xl)] md:text-[var(--text-4xl)] font-[family-name:var(--font-playfair)] tracking-wide text-foreground mb-[var(--space-lg)]">
+              <h2 className="text-3xl md:text-4xl font-[family-name:var(--font-playfair)] tracking-wide text-foreground mb-6">
                 Timeless Elegance
               </h2>
-              <p className="text-secondary leading-relaxed mb-[var(--space-lg)]">
+              <p className="text-secondary leading-relaxed mb-6">
                 Our collection represents the perfect balance between modern design and classic elegance.
                 Each piece is carefully crafted using premium materials to ensure lasting quality and comfort.
               </p>
@@ -95,7 +95,7 @@ export default function HomeClient({ products }: { products: Product[] }) {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.7, ease: "easeOut" }}
-              className="relative aspect-[4/5] rounded-[var(--radius-xl)] overflow-hidden shadow-md group"
+              className="relative aspect-[4/5] rounded-2xl overflow-hidden shadow-md group"
             >
               <Image
                 src="/images/logo.jpeg"
@@ -111,7 +111,7 @@ export default function HomeClient({ products }: { products: Product[] }) {
       </section>
 
       {/* CTA Banner */}
-      <section className="py-[var(--space-3xl)] px-[var(--container-padding)] bg-card">
+      <section className="py-16 lg:py-20 px-4 md:px-6 bg-card">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -119,15 +119,15 @@ export default function HomeClient({ products }: { products: Product[] }) {
           transition={{ duration: 0.6 }}
           className="max-w-3xl mx-auto text-center"
         >
-          <h2 className="text-[var(--text-3xl)] md:text-[var(--text-4xl)] font-[family-name:var(--font-playfair)] text-foreground mb-[var(--space-md)]">
+          <h2 className="text-3xl md:text-4xl font-[family-name:var(--font-playfair)] text-foreground mb-4">
             Ready to Elevate Your Style?
           </h2>
-          <p className="text-secondary mb-[var(--space-xl)] text-[var(--text-sm)]">
+          <p className="text-secondary mb-8 text-sm">
             Join the community of discerning individuals who choose OG.
           </p>
           <Link
             href="/shop"
-            className="inline-flex items-center gap-[var(--space-sm)] px-[var(--space-xl)] py-[var(--space-md)] bg-accent text-white text-[var(--text-sm)] tracking-wider uppercase font-medium rounded-full hover:bg-accent-deep transition-all duration-300 shadow-md hover:shadow-lg"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-accent text-white text-sm tracking-wider uppercase font-medium rounded-full hover:bg-accent-deep transition-all duration-300 shadow-md hover:shadow-lg"
           >
             Explore Collection
           </Link>
@@ -144,7 +144,7 @@ function HeroSection() {
   const opacity = useTransform(scrollY, [0, 300], [1, 0.3]);
 
   return (
-    <section className="relative min-h-screen md:h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image with Filters */}
       <motion.div
         className="absolute inset-0 bg-cover bg-center"
@@ -164,13 +164,13 @@ function HeroSection() {
       {/* Content */}
       <motion.div
         style={{ opacity }}
-        className="relative z-20 text-center px-[var(--space-lg)]"
+        className="relative z-20 text-center px-6"
       >
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="text-[var(--text-4xl)] sm:text-6xl md:text-8xl font-[family-name:var(--font-playfair)] tracking-[0.15em] text-foreground mb-[var(--space-md)]"
+          className="text-5xl sm:text-6xl md:text-8xl font-[family-name:var(--font-playfair)] tracking-[0.15em] text-foreground mb-4"
         >
           OG
         </motion.h1>
@@ -178,7 +178,7 @@ function HeroSection() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-[var(--text-xs)] tracking-[0.5em] text-accent uppercase mb-[var(--space-lg)] font-medium"
+          className="text-xs tracking-[0.5em] text-accent uppercase mb-6 font-medium"
         >
           Old Gold
         </motion.p>
@@ -186,7 +186,7 @@ function HeroSection() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="text-secondary text-[var(--text-base)] md:text-[var(--text-lg)] max-w-lg mx-auto mb-[var(--space-xl)] font-light leading-relaxed"
+          className="text-secondary text-base md:text-lg max-w-lg mx-auto mb-8 font-light leading-relaxed"
         >
           Premium clothing for the modern minimalist
         </motion.p>
@@ -194,17 +194,17 @@ function HeroSection() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="flex flex-col sm:flex-row gap-[var(--space-sm)] sm:gap-[var(--space-md)] justify-center"
+          className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center"
           >
             <Link
               href="/shop"
-              className="px-[var(--space-xl)] py-[var(--space-sm)] bg-accent text-white text-[var(--text-sm)] font-semibold tracking-wider uppercase rounded-full hover:bg-accent-deep transition-all duration-300 shadow-md hover:shadow-lg"
+              className="px-8 py-2 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-full hover:bg-accent-deep transition-all duration-300 shadow-md hover:shadow-lg"
             >
               Shop Now
             </Link>
             <Link
               href="/shop"
-              className="px-[var(--space-xl)] py-[var(--space-sm)] border-2 border-accent text-accent text-[var(--text-sm)] font-semibold tracking-wider uppercase rounded-full hover:bg-accent hover:text-white transition-all duration-300"
+              className="px-8 py-2 border-2 border-accent text-accent text-sm font-semibold tracking-wider uppercase rounded-full hover:bg-accent hover:text-white transition-all duration-300"
             >
               View Collection
             </Link>

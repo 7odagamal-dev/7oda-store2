@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getStoreContext } from '@/lib/store-context';
 import { filterByStore } from '@/lib/db';
+import { createClient } from '@/lib/supabase-server';
 
 export async function GET(
   req: NextRequest,
@@ -13,12 +14,19 @@ export async function GET(
       return NextResponse.json({ error: 'Order ID required' }, { status: 400 });
     }
 
+    // Require authentication — endpoint exposes PII (customer_name, address, items)
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { storeId } = await getStoreContext(req);
 
     let query = filterByStore(
       supabaseAdmin
         .from('orders')
-        .select('id, display_id, customer_name, governorate, city, status, delivery_status, total, items, payment_method, created_at, store_id'),
+        .select('id, display_id, customer_name, governorate, city, status, delivery_status, total, items, payment_method, created_at, store_id, user_id'),
       storeId,
     );
 
@@ -37,6 +45,11 @@ export async function GET(
 
     if (!data) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    // Ownership check: only the order owner can view PII
+    if (data.user_id && data.user_id !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     interface OrderItem {

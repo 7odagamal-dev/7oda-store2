@@ -28,13 +28,21 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const host = request.headers.get('host') || '';
 
-  // Protect admin routes
+  // Protect admin routes (first gate — route handlers also call getAdminSession())
   if (path.startsWith('/admin') && !path.startsWith('/admin-login') && !path.startsWith('/api/admin/login')) {
     const token = request.cookies.get('og-admin-auth')?.value;
 
     if (!token) {
       if (path.startsWith('/api/admin')) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      return NextResponse.redirect(new URL('/admin-login', request.url));
+    }
+
+    // Basic token format validation (32 bytes → 64 hex chars)
+    if (token.length !== 64 || !/^[0-9a-f]+$/.test(token)) {
+      if (path.startsWith('/api/admin')) {
+        return NextResponse.json({ error: 'Invalid session token' }, { status: 401 });
       }
       return NextResponse.redirect(new URL('/admin-login', request.url));
     }

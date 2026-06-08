@@ -7,7 +7,7 @@ const MAX_MESSAGES = 5;
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 function sanitize(str: string): string {
-  return str.trim().slice(0, 2000);
+  return str.trim().slice(0, 2000).replace(/<[^>]*>/g, '');
 }
 
 export async function POST(req: NextRequest) {

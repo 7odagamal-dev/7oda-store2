@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface Subscriber {
   id: string;
@@ -22,7 +23,7 @@ export default function NewsletterPage() {
   const fetchSubscribers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/newsletter');
+      const res = await adminFetch('/api/admin/newsletter');
       const data = await res.json();
       setSubscribers(data.subscribers ?? []);
     } catch {
@@ -36,7 +37,7 @@ export default function NewsletterPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch('/api/admin/newsletter', {
+      const res = await adminFetch('/api/admin/newsletter', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),

@@ -9,7 +9,7 @@ import { useWishlist } from '@/context/WishlistContext';
 import CountdownTimer from '@/components/CountdownTimer';
 import QuickView from '@/components/QuickView';
 
-const isTouchDevice = typeof navigator !== 'undefined' && 'ontouchstart' in window;
+const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window;
 
 interface FlashSaleInfo {
   product_id: string;

@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
     const { response } = await createSession({
       storeId: null,
       userId: null,
-      userRole: null,
+      userRole: 'superadmin',
     });
     return response;
   } catch (e) {

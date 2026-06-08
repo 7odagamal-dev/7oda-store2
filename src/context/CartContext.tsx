@@ -74,7 +74,7 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
 
 function loadCartFromStorage(): CartItem[] {
   const items = safeParseStorage<CartItem[]>('og-cart', []);
-  return items.map((item: any) => ({
+  return items.map((item: CartItem) => ({
     ...item,
     image: item.image || item.product?.main_image
   }));

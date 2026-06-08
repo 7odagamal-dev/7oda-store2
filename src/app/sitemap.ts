@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { normalizeSupabaseProjectUrl } from '@/lib/supabase-project-url';
 import { createClient } from '@supabase/supabase-js';
+import { DEFAULT_STORE_ID } from '@/lib/store-context';
 
 const STATIC_ROUTES = [
   '', '/about', '/blog', '/cart', '/checkout', '/contact', '/faq',
@@ -32,6 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const { data: products } = await client
       .from('products')
       .select('slug, updated_at')
+      .eq('store_id', DEFAULT_STORE_ID)
       .limit(1000);
 
     if (products) {
@@ -49,6 +51,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .from('blog_posts')
       .select('slug, updated_at')
       .eq('published', true)
+      .eq('store_id', DEFAULT_STORE_ID)
       .limit(500);
 
     if (posts) {

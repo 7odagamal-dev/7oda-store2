@@ -104,7 +104,7 @@ export function OrderSuccess({
         )}
 
         <div className="space-y-3">
-          <a href="https://www.instagram.com/og.oldgold?igsh=bzlvMDhnejFzbWMy&utm_source=qr" target="_blank"
+          <a href="https://www.instagram.com/og.oldgold?igsh=bzlvMDhnejFzbWMy&utm_source=qr" target="_blank" rel="noopener noreferrer"
             className="block w-full py-3.5 bg-[#8BA4B8] text-white text-sm font-semibold tracking-wider uppercase rounded-xl hover:bg-[#6B8BA0] transition-all">
             Confirm on Instagram
           </a>

@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getStoreContext } from '@/lib/store-context';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+    const allowed = await checkRateLimit(ip, 'validate_coupon', 10, 60000);
+    if (!allowed) {
+      return NextResponse.json({ valid: false, error: 'Too many attempts. Please try again later.' }, { status: 429 });
+    }
+
     const { code, orderTotal } = await request.json();
     if (!code) return NextResponse.json({ valid: false, error: 'Code is required' });
 

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { normalizeSupabaseProjectUrl } from '@/lib/supabase-project-url';
 import type { Product } from '@/lib/supabase';
+import { DEFAULT_STORE_ID } from '@/lib/store-context';
 import HomeClient from './HomeClient';
 
 // Use standard revalidate pattern for Next.js App Router (ISR)
@@ -19,6 +20,7 @@ export default async function Home() {
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .eq('store_id', DEFAULT_STORE_ID)
         .eq('is_featured', true)
         .limit(4);
 

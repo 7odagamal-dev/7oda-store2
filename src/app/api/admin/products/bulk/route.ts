@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getAdminSession } from '@/lib/auth'
-import { csrfGuard } from '@/lib/csrf'
+import { csrfGuard, safeJson } from '@/lib/csrf'
 import * as XLSX from 'xlsx'
 
 export async function POST(request: NextRequest) {
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json(results)
+    return safeJson(results)
   } catch (err) {
     console.error('Bulk upload error:', err)
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 })

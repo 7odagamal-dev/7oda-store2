@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface Review {
   id: string;
@@ -19,7 +20,7 @@ export default function AdminReviews() {
 
   const fetchReviews = async () => {
     try {
-      const res = await fetch('/api/admin/reviews');
+      const res = await adminFetch('/api/admin/reviews');
       if (!res.ok) { setReviews([]); return; }
       const data = await res.json();
       setReviews(data || []);
@@ -35,7 +36,7 @@ export default function AdminReviews() {
   const deleteReview = async (id: string) => {
     if (!confirm('Delete this review permanently?')) return;
     try {
-      const res = await fetch('/api/admin/reviews', {
+      const res = await adminFetch('/api/admin/reviews', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),

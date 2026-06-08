@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAdminSession } from '@/lib/auth';
-import { csrfGuard } from '@/lib/csrf';
+import { csrfGuard, safeJson } from '@/lib/csrf';
+import sanitizeHtml from 'sanitize-html';
 
 export async function GET(req: NextRequest) {
   const session = await getAdminSession(req);
@@ -25,13 +26,13 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.error('Admin blog fetch error:', error.message);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
     return NextResponse.json({ posts });
   } catch (error) {
     console.error('Admin blog GET error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -48,6 +49,20 @@ function sanitize(str: string, max = 5000): string {
   return str.trim().slice(0, max);
 }
 
+function sanitizeBlogContent(str: string): string {
+  return sanitizeHtml(str, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'figure', 'figcaption', 'hr']),
+    allowedAttributes: {
+      a: ['href', 'target', 'rel'],
+      img: ['src', 'alt', 'width', 'height', 'loading'],
+      '*': ['class', 'id'],
+    },
+    allowedSchemes: ['http', 'https', 'mailto'],
+    disallowedTagsMode: 'discard',
+    allowedSchemesByTag: { img: ['https', 'data'] },
+  });
+}
+
 export async function POST(req: NextRequest) {
   const csrfResp = csrfGuard(req);
   if (csrfResp) return csrfResp;
@@ -62,8 +77,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
-    const content = sanitize(body.content ?? '', 50000);
-    if (!content) {
+    const content = sanitizeBlogContent(sanitize(body.content ?? '', 50000));
+    if (!content.trim()) {
       return NextResponse.json({ error: 'Content is required' }, { status: 400 });
     }
 
@@ -106,13 +121,13 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error('Admin blog create error:', error.message);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
-    return NextResponse.json({ post });
+    return safeJson({ post });
   } catch (error) {
     console.error('Admin blog POST error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -132,7 +147,7 @@ export async function PUT(req: NextRequest) {
     const updates: Record<string, unknown> = {};
 
     if (body.title !== undefined) updates.title = sanitize(body.title, 200);
-    if (body.content !== undefined) updates.content = sanitize(body.content, 50000);
+    if (body.content !== undefined) updates.content = sanitizeBlogContent(sanitize(body.content, 50000));
     if (body.excerpt !== undefined) updates.excerpt = sanitize(body.excerpt, 500);
     if (body.cover_image !== undefined) updates.cover_image = sanitize(body.cover_image, 500);
     if (body.category !== undefined) updates.category = sanitize(body.category, 100);
@@ -166,13 +181,13 @@ export async function PUT(req: NextRequest) {
 
     if (error) {
       console.error('Admin blog update error:', error.message);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
-    return NextResponse.json({ post });
+    return safeJson({ post });
   } catch (error) {
     console.error('Admin blog PUT error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -197,12 +212,12 @@ export async function DELETE(req: NextRequest) {
 
     if (error) {
       console.error('Admin blog delete error:', error.message);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return safeJson({ success: true });
   } catch (error) {
     console.error('Admin blog DELETE error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

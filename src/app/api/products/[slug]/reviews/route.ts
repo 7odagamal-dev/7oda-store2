@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getStoreContext } from '@/lib/store-context';
 import { filterByStore } from '@/lib/db';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function GET(
   request: NextRequest,
@@ -16,6 +17,7 @@ export async function GET(
       .from('products')
       .select('id')
       .eq('slug', slug)
+      .eq('store_id', storeId)
       .single();
 
     if (!product) {
@@ -29,7 +31,7 @@ export async function GET(
 
     if (error) throw error;
 
-    const totalRating = reviews?.reduce((sum: number, r: any) => sum + r.rating, 0) || 0;
+    const totalRating = reviews?.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) || 0;
     const averageRating = reviews && reviews.length > 0
       ? Math.round((totalRating / reviews.length) * 10) / 10
       : 0;
@@ -37,7 +39,7 @@ export async function GET(
     return NextResponse.json({ reviews: reviews || [], averageRating, totalReviews: reviews?.length || 0 });
   } catch (error) {
     console.error('Reviews fetch error:', error);
-    return NextResponse.json({ reviews: [], averageRating: 0, totalReviews: 0 });
+    return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 });
   }
 }
 
@@ -46,6 +48,12 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+    const allowed = await checkRateLimit(ip, 'create_review', 5, 60000);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many reviews. Please try again later.' }, { status: 429 });
+    }
+
     const { slug } = await params;
     const { storeId } = await getStoreContext(request);
     const body = await request.json();
@@ -66,6 +74,7 @@ export async function POST(
       .from('products')
       .select('id')
       .eq('slug', slug)
+      .eq('store_id', storeId)
       .single();
 
     if (!product) {

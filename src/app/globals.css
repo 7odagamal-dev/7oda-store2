@@ -318,18 +318,28 @@ img { image-rendering: auto; }
   min-height: 100vh;
 }
 .fsa-sidebar {
-  width: var(--sidebar-width);
+  width: 100vw;
+  max-width: var(--sidebar-width);
   flex-shrink: 0;
   position: fixed;
   top: 0;
   left: 0;
-  height: 100vh;
+  height: 100dvh;
   z-index: 30;
+}
+@media (min-width: 768px) {
+  .fsa-sidebar {
+    width: var(--sidebar-width);
+  }
 }
 .fsa-admin-main {
   flex: 1;
-  margin-left: var(--sidebar-width);
   min-width: 0;
+}
+@media (min-width: 768px) {
+  .fsa-admin-main {
+    margin-left: var(--sidebar-width);
+  }
 }
 
 /* ==========================================================================

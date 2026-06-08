@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
+import { adminFetch } from '@/lib/admin-fetch'
 
 interface OrderData {
   id: string
@@ -23,12 +24,17 @@ export default function InvoicePage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`/api/admin/orders`).then(r => r.json()).then((orders: OrderData[]) => {
-      const found = orders.find((o: OrderData) => o.id?.startsWith(id as string) || o.id === id)
-      setOrder(found || null)
-      setLoading(false)
-      setTimeout(() => window.print(), 500)
-    }).catch(() => setLoading(false))
+    const orderId = Array.isArray(id) ? id[0] : id
+    if (!orderId) return
+    adminFetch(`/api/admin/orders?id=${encodeURIComponent(orderId)}&limit=1`)
+      .then(r => r.json())
+      .then((response) => {
+        const orders = response.data || []
+        const found = orders.find((o: OrderData) => o.id === orderId || o.id?.startsWith(orderId))
+        setOrder(found || null)
+        setLoading(false)
+        setTimeout(() => window.print(), 500)
+      }).catch(() => setLoading(false))
   }, [id])
 
   if (loading) return <div className="flex items-center justify-center min-h-screen text-[#6B7280]">Loading invoice...</div>
