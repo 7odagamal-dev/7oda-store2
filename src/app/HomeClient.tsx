@@ -6,12 +6,138 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import type { Product } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import RecentlyViewed from '@/components/RecentlyViewed';
+import CountdownTimer from '@/components/CountdownTimer';
+import { BundleCard } from '@/components/BundleDisplay';
 
-export default function HomeClient({ products }: { products: Product[] }) {
+export default function HomeClient({ products, flashSaleProducts, flashSaleInfo, bundles }: {
+  products: Product[];
+  flashSaleProducts: Product[];
+  flashSaleInfo: Record<string, { discount_percentage: number; ends_at: string }>;
+  bundles: Array<Record<string, unknown>>;
+}) {
+  const earliestEnd = Object.values(flashSaleInfo).reduce<string | null>((earliest, info) => {
+    if (!earliest || info.ends_at < earliest) return info.ends_at;
+    return earliest;
+  }, null);
+
   return (
     <div className="min-h-screen">
       <HeroSection />
-      
+
+      {/* Flash Sale */}
+      {flashSaleProducts.length > 0 && earliestEnd && (
+        <section className="py-12 lg:py-16 bg-gradient-to-br from-rose-50 via-white to-orange-50">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+              className="text-center mb-10"
+            >
+              <span className="text-xs tracking-[0.2em] text-rose-500 uppercase mb-2 block font-semibold">
+                Limited Time
+              </span>
+              <h2 className="text-3xl md:text-4xl font-[family-name:var(--font-playfair)] tracking-wide text-foreground mb-3">
+                Flash Sale
+              </h2>
+              <div className="flex justify-center">
+                <CountdownTimer endsAt={earliestEnd} />
+              </div>
+            </motion.div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {flashSaleProducts.map((product, index) => {
+                const info = flashSaleInfo[product.id];
+                return (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    index={index}
+                    flashSale={info ? { product_id: product.id, discount_percentage: info.discount_percentage, ends_at: info.ends_at } : undefined}
+                  />
+                );
+              })}
+            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="text-center mt-10"
+            >
+              <Link
+                href="/shop"
+                className="inline-flex items-center gap-2 px-8 py-2 border-2 border-rose-400 text-rose-500 text-sm tracking-wider uppercase font-medium rounded-full hover:bg-rose-500 hover:text-white transition-all duration-300 group"
+              >
+                View All Sales
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+              </Link>
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* Bundle Deals */}
+      {bundles.length > 0 && (
+        <section className="py-12 lg:py-20 bg-background">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+              className="text-center mb-10"
+            >
+              <span className="text-xs tracking-[0.2em] text-accent uppercase mb-2 block">Bundle & Save</span>
+              <h2 className="text-3xl md:text-4xl font-[family-name:var(--font-playfair)] tracking-wide text-foreground mb-4">
+                Complete Sets
+              </h2>
+              <p className="text-secondary max-w-md mx-auto text-sm leading-relaxed">
+                Curated looks at exclusive bundle prices
+              </p>
+            </motion.div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {bundles.map((bundle, idx) => (
+                <motion.div
+                  key={bundle.id as string}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: idx * 0.05 }}
+                >
+                  <Link href={`/bundles/${bundle.id}`}>
+                    <BundleCard bundle={bundle as { id: string; name?: string; description?: string | null; image?: string | null; image_source?: string; image_layout?: string; image_data?: Record<string, unknown>; product_images?: (string | null)[]; discount_type?: string; discount_value?: number }}>
+                      <p className="text-[var(--text-xs)] text-secondary mt-[var(--space-sm)]">
+                        {(bundle.products as string[])?.length || 0} items included
+                      </p>
+                    </BundleCard>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="text-center mt-10"
+            >
+              <Link
+                href="/bundles"
+                className="inline-flex items-center gap-2 px-8 py-2 border-2 border-accent text-accent text-sm tracking-wider uppercase font-medium rounded-full hover:bg-accent hover:text-white transition-all duration-300 group"
+              >
+                View All Bundles
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+              </Link>
+            </motion.div>
+          </div>
+        </section>
+      )}
+
       {/* Featured Collection */}
       <section className="py-12 lg:py-20 bg-card">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">

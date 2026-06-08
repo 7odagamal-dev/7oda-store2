@@ -59,9 +59,11 @@ export default async function BlogPage() {
               >
                 <div className="aspect-[16/10] bg-[#F3F5F8] overflow-hidden">
                   {post.cover_image ? (
-                    <div
-                      className="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-500"
-                      style={{ backgroundImage: `url(${post.cover_image})` }}
+                    <img
+                      src={post.cover_image}
+                      alt={post.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

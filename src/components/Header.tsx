@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
-import { useWishlist } from '@/context/WishlistContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useState, useEffect } from 'react';
@@ -13,7 +12,7 @@ import { usePathname } from 'next/navigation';
 export default function Header() {
   const pathname = usePathname();
   const { itemCount } = useCart();
-  const { theme, toggleTheme } = useTheme();
+  const { toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -53,6 +52,7 @@ export default function Header() {
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/shop', label: 'Shop' },
+    { href: '/blog', label: 'Blog' },
     { href: '/wishlist', label: 'Wishlist' },
     { href: '/track', label: 'Track' },
     { href: '/contact', label: 'Contact' },

@@ -109,10 +109,9 @@ async function releaseOrderStock(orderId: string): Promise<void> {
 }
 
 function buildHmacMessage(body: Record<string, unknown>): string {
-  const { hmac: _, ...rest } = body;
-  const sortedKeys = Object.keys(rest).sort();
+  const sortedKeys = Object.keys(body).filter(k => k !== 'hmac').sort();
   return sortedKeys.map(k => {
-    const val = rest[k];
+    const val = body[k];
     if (val !== null && typeof val === 'object') {
       return `${k}=${JSON.stringify(val)}`;
     }
@@ -213,6 +212,20 @@ export async function POST(req: NextRequest) {
       }
     } else {
       await releaseOrderStock(orderId);
+    }
+
+    // ── Coupon lifecycle: increment on success, release on cancel ──
+    const { data: orderWithCoupon } = await supabaseAdmin
+      .from('orders')
+      .select('coupon_id')
+      .eq('id', orderId)
+      .single();
+    if (orderWithCoupon?.coupon_id) {
+      if (success) {
+        await supabaseAdmin.rpc('atomic_increment_coupon', { p_coupon_id: orderWithCoupon.coupon_id });
+      } else {
+        await supabaseAdmin.rpc('atomic_decrement_coupon', { p_coupon_id: orderWithCoupon.coupon_id });
+      }
     }
 
     // ── 8. Atomic idempotency lock (only after stock is committed) ──

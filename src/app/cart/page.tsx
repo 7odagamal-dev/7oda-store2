@@ -149,7 +149,7 @@ const CartItem = memo(({ item, onRemove, onAdd, onUpdate }: { item: CartItem; on
         <div>
           <div className="flex justify-between items-start">
             <div>
-              <Link href={`/product/${item.product.slug}`}>
+              <Link href={`/product/${encodeURIComponent(item.product.category || 'uncategorized')}/${item.product.id}`}>
                 <h3 className="text-[var(--text-sm)] font-medium text-foreground hover:text-accent transition-colors uppercase tracking-tight font-[family-name:var(--font-playfair)]">
                   {item.product.name}
                 </h3>
@@ -173,7 +173,7 @@ const CartItem = memo(({ item, onRemove, onAdd, onUpdate }: { item: CartItem; on
               </svg>
             </button>
           </div>
-          <p className="text-accent font-semibold text-[var(--text-sm)] mt-[var(--space-xs)]">EGP {item.product.price.toLocaleString()}</p>
+          <p className="text-accent font-semibold text-[var(--text-sm)] mt-[var(--space-xs)]">EGP {(item.unitPrice ?? item.product.price).toLocaleString()}</p>
         </div>
 
         <div className="flex items-center justify-between mt-[var(--space-sm)] gap-[var(--space-sm)]">
@@ -183,7 +183,7 @@ const CartItem = memo(({ item, onRemove, onAdd, onUpdate }: { item: CartItem; on
             <button onClick={increaseQty} aria-label="Increase quantity" className="touch-target-sm px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--text-xs)] text-secondary hover:text-foreground transition-colors">+</button>
           </div>
           <p className="text-[var(--text-xs)] text-secondary whitespace-nowrap">
-            Subtotal: EGP {(item.product.price * item.quantity).toLocaleString()}
+            Subtotal: EGP {((item.unitPrice ?? item.product.price) * item.quantity).toLocaleString()}
           </p>
         </div>
       </div>

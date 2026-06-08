@@ -2,7 +2,9 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
+import { BundleCard } from '@/components/BundleDisplay';
 import { Product } from '@/lib/supabase';
 
 const SORT_OPTIONS = [
@@ -24,6 +26,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
   const [sort, setSort] = useState('newest');
   const [onlyDiscount, setOnlyDiscount] = useState(false);
   const [flashSales, setFlashSales] = useState<Record<string, FlashSaleInfo>>({});
+  const [bundles, setBundles] = useState<Array<Record<string, unknown>>>([]);
 
   useEffect(() => {
     fetch('/api/flash-sales')
@@ -33,6 +36,10 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
         (data.sales ?? []).forEach((s: FlashSaleInfo) => { map[s.product_id] = s; });
         setFlashSales(map);
       })
+      .catch(() => {});
+    fetch('/api/bundles')
+      .then(r => r.json())
+      .then(data => setBundles(data.bundles ?? []))
       .catch(() => {});
   }, []);
 
@@ -194,6 +201,54 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Bundle Deals */}
+        {bundles.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="mt-16 pt-16 border-t border-[#E5E7EB]"
+          >
+            <div className="text-center mb-10">
+              <span className="text-xs tracking-[0.2em] text-accent uppercase mb-2 block font-medium">Bundle & Save</span>
+              <h2 className="text-3xl font-[family-name:var(--font-playfair)] tracking-wide text-[#1A1A1A] mb-3">
+                Complete the Look
+              </h2>
+              <p className="text-[#6B7280] text-sm max-w-md mx-auto">
+                Curated sets at exclusive bundle prices
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {bundles.slice(0, 3).map((bundle, idx) => (
+                <motion.div
+                  key={bundle.id as string}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: idx * 0.05 }}
+                >
+                  <Link href={`/bundles/${bundle.id}`}>
+                    <BundleCard bundle={bundle as { id: string; name?: string; description?: string | null; image?: string | null; image_source?: string; image_layout?: string; image_data?: Record<string, unknown>; product_images?: (string | null)[]; discount_type?: string; discount_value?: number }}>
+                      <p className="text-[var(--text-xs)] text-secondary mt-[var(--space-sm)]">
+                        {(bundle.products as string[])?.length || 0} items included
+                      </p>
+                    </BundleCard>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+            <div className="text-center mt-10">
+              <Link href="/bundles" className="inline-flex items-center gap-2 px-8 py-2 border-2 border-accent text-accent text-sm tracking-wider uppercase font-medium rounded-full hover:bg-accent hover:text-white transition-all duration-300 group">
+                View All Bundles
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+              </Link>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

@@ -25,7 +25,6 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
   const allocatedTotal = Object.values(sizeQty).reduce((a, b) => a + b, 0);
   const isMultiMode = targetQty > 1;
   const isBalanced = allocatedTotal === targetQty;
-  const totalQty = targetQty;
 
   const availableStock = Math.max(0, product.stock - (product.reserved_stock ?? 0));
 
@@ -80,8 +79,8 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
   };
 
   const hasDiscount = product.old_price && product.old_price > product.price;
-  const discountPercentage = hasDiscount
-    ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
+  const discountPercentage = hasDiscount && product.old_price
+    ? Math.round(((product.old_price - product.price) / product.old_price) * 100)
     : 0;
 
   const isLowStock = availableStock > 0 && availableStock <= 5;
@@ -240,7 +239,7 @@ export default function QuickView({ product, isOpen, onClose }: QuickViewProps) 
                 {isOutOfStock ? 'Out of Stock' : allocatedTotal === 0 ? 'Select a size' : isMultiMode && !isBalanced ? `Allocate ${targetQty - allocatedTotal} more` : `Add to Cart — EGP ${(product.price * allocatedTotal).toLocaleString()}`}
               </button>
 
-              <button onClick={() => { onClose(); router.push(`/product/${product.slug}`); }}
+              <button onClick={() => { onClose(); router.push(`/product/${encodeURIComponent(product.category || 'uncategorized')}/${product.id}`); }}
                 className="mt-[var(--space-sm)] w-full py-[var(--space-sm)] text-[var(--text-xs)] text-secondary hover:text-foreground transition-all"
               >
                 View Full Details

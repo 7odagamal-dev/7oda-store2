@@ -25,7 +25,7 @@ export default function AdminMessages() {
       if (!res.ok) { setMessages([]); return; }
       const data = await res.json();
       setMessages(data || []);
-    } catch (error) {
+    } catch {
       setMessages([]);
     } finally {
       setLoading(false);

@@ -54,8 +54,11 @@ export async function POST(req: NextRequest) {
     const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) ? ext : 'jpg';
     const fileName = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
 
-    // Auto-create bucket if it doesn't exist (idempotent)
-    await supabaseAdmin.storage.createBucket('product-images', { public: true });
+    // Ensure bucket exists (idempotent — no-op if already present)
+    const { data: existingBucket } = await supabaseAdmin.storage.getBucket('product-images');
+    if (!existingBucket) {
+      await supabaseAdmin.storage.createBucket('product-images', { public: true });
+    }
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);

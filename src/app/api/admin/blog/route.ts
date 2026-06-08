@@ -59,7 +59,7 @@ function sanitizeBlogContent(str: string): string {
     },
     allowedSchemes: ['http', 'https', 'mailto'],
     disallowedTagsMode: 'discard',
-    allowedSchemesByTag: { img: ['https', 'data'] },
+    allowedSchemesByTag: { img: ['https', 'data', 'http'] },
   });
 }
 

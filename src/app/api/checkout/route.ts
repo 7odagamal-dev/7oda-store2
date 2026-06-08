@@ -90,6 +90,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to validate products' }, { status: 500 });
     }
 
+    // ── Fetch active flash sales ──
+    const { data: flashSales } = await supabaseAdmin
+      .from('flash_sales')
+      .select('product_id, discount_percentage')
+      .eq('store_id', storeId)
+      .eq('is_active', true)
+      .gt('ends_at', new Date().toISOString());
+
     interface DbProduct {
       id: string;
       name: string;
@@ -126,21 +134,26 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
 
-      calculatedTotal += dbProduct.price * qty;
+      let unitPrice = dbProduct.price;
+      const activeFlashSale = (flashSales || []).find(fs => fs.product_id === dbProduct.id);
+      if (activeFlashSale) {
+        unitPrice = Math.round(dbProduct.price * (1 - activeFlashSale.discount_percentage / 100));
+      }
+      calculatedTotal += unitPrice * qty;
 
       orderItems.push({
         product_id: dbProduct.id,
         name: dbProduct.name,
         size: item.size,
         quantity: qty,
-        price: dbProduct.price,
+        price: unitPrice,
         image: dbProduct.main_image || null,
       });
     }
 
     // ── Coupon calculation (read-only — no mutation yet) ──
     let couponDiscount = 0;
-    let couponRecord: unknown = null;
+    let couponId: string | null = null;
     if (coupon_code) {
       const { data: coupon, error: couponError } = await supabaseAdmin
         .from('coupons')
@@ -156,7 +169,7 @@ export async function POST(req: NextRequest) {
                 ? Math.round((calculatedTotal * coupon.discount_value) / 100)
                 : coupon.discount_value;
               if (couponDiscount > calculatedTotal) couponDiscount = calculatedTotal;
-              couponRecord = coupon;
+              couponId = coupon.id;
             }
           }
         }
@@ -207,7 +220,10 @@ export async function POST(req: NextRequest) {
 
     const { data: order, error: insertError } = await supabaseAdmin
       .from('orders')
-      .insert([orderData])
+      .insert([{
+        ...orderData,
+        ...(couponId ? { coupon_id: couponId } : {}),
+      }])
       .select('id')
       .single();
 
@@ -231,16 +247,7 @@ export async function POST(req: NextRequest) {
       }, { status: 409 });
     }
 
-    // ── Step 3: Atomic coupon usage increment (race-condition-safe) ──
-    if (couponRecord) {
-      const cr = couponRecord as { id: string };
-      const { error: couponIncrError } = await supabaseAdmin
-        .rpc('atomic_increment_coupon', { p_coupon_id: cr.id });
-      if (couponIncrError) {
-        console.error('[Checkout] Failed to increment coupon usage:', couponIncrError.message);
-      }
-    }
-
+    // Coupon increment is deferred to payment confirmation (callback or admin confirm)
     // Store idempotency key so retries won't create duplicate orders
     if (idempotency_key) {
       setIdempotencyResult(idempotency_key, order.id);

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import type { Product } from '@/lib/supabase';
 

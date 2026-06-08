@@ -92,9 +92,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         {post.cover_image && (
           <div className="aspect-[16/9] rounded-2xl overflow-hidden bg-[#F3F5F8] mb-10">
-            <div
-              className="w-full h-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${post.cover_image})` }}
+            <img
+              src={post.cover_image}
+              alt={post.title}
+              className="w-full h-full object-cover"
             />
           </div>
         )}

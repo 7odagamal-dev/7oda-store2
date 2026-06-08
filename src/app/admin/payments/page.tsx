@@ -178,13 +178,13 @@ export default function AdminPayments() {
               <span key="order" className="text-xs font-mono text-[#8BA4B8]">{err.order_id?.slice(0,8) || '—'}</span>,
               <span key="date" className="text-xs text-[#9CA3AF]">{new Date(err.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>,
               <div key="actions" className="flex gap-2">
-                {err.event_id && (
-                  <button onClick={() => retryEvent(err.event_id!)}
+                {err.event_id ? (
+                  <button onClick={() => retryEvent(err.event_id as string)}
                     disabled={retrying === err.event_id}
                     className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 text-xs font-medium transition-all disabled:opacity-50">
                     {retrying === err.event_id ? '...' : 'Retry'}
                   </button>
-                )}
+                ) : null}
                 <button onClick={() => resolveError(err.id)}
                   className="px-3 py-1 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 text-xs font-medium transition-all">
                   Resolve

@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     return NextResponse.json(data || []);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch coupons' }, { status: 500 });
   }
 }
@@ -87,7 +87,7 @@ export async function PUT(req: NextRequest) {
     const { error } = await query;
     if (error) throw error;
     return safeJson({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to update coupon' }, { status: 500 });
   }
 }
@@ -105,7 +105,7 @@ export async function DELETE(req: NextRequest) {
     const { error } = await query;
     if (error) throw error;
     return safeJson({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to delete coupon' }, { status: 500 });
   }
 }

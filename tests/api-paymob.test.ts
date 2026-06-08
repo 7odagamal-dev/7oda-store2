@@ -25,7 +25,6 @@ vi.mock('@/lib/supabase-admin', () => {
 
 import { POST } from '@/app/api/paymob/payment/route';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { getStoreContext } from '@/lib/store-context';
 import { filterByStore } from '@/lib/db';
 
 const mockFilter = filterByStore as ReturnType<typeof vi.fn>;
@@ -42,6 +41,7 @@ function makeReq(body: unknown, ip = '1.2.3.4'): NextRequest {
 beforeEach(() => {
   vi.clearAllMocks();
   mockCheckRL.mockResolvedValue(true);
+  vi.stubEnv('PAYMOB_IFRAME_ID', 'test-iframe-123');
 });
 
 describe('amount verification', () => {

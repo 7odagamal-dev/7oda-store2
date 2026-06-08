@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { JsonLd } from '@/components/JsonLd';
 
 type MetadataProps = {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ category: string; id: string }>;
 };
 
 function absoluteUrl(base: string, path: string): string {
@@ -13,13 +13,12 @@ function absoluteUrl(base: string, path: string): string {
 export async function generateMetadata(
   { params }: MetadataProps
 ): Promise<Metadata> {
-  const resolvedParams = await params;
-  const slug = resolvedParams.slug;
+  const { category, id } = await params;
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-  const canonicalUrl = `${baseUrl.replace(/\/+$/, '')}/product/${encodeURIComponent(slug)}`;
+  const canonicalUrl = `${baseUrl.replace(/\/+$/, '')}/product/${encodeURIComponent(category)}/${encodeURIComponent(id)}`;
 
   try {
-    const res = await fetch(`${baseUrl}/api/products/${encodeURIComponent(slug)}`, { cache: 'no-store' });
+    const res = await fetch(`${baseUrl}/api/products/by-id/${encodeURIComponent(id)}`, { cache: 'no-store' });
     if (res.ok) {
       const json = await res.json();
       if (json.product) {
@@ -27,8 +26,6 @@ export async function generateMetadata(
         const title = `${p.name} - OG Old Gold`;
         const description = p.description || `Shop ${p.name} at OG Old Gold. Premium quality.`;
         const image = absoluteUrl(baseUrl, p.main_image || '/images/logo.jpeg');
-        const price = p.price;
-        const currency = 'EGP';
 
         return {
           title,
@@ -52,9 +49,7 @@ export async function generateMetadata(
         };
       }
     }
-  } catch {
-    // Fallback metadata
-  }
+  } catch {}
 
   return {
     title: 'Product - OG Old Gold',
@@ -73,15 +68,15 @@ export default async function ProductLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ slug: string }>;
+  params: Promise<{ category: string; id: string }>;
 }) {
-  const { slug } = await params;
+  const { id } = await params;
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
   let productJsonLd: Record<string, unknown> | null = null;
 
   try {
-    const res = await fetch(`${baseUrl}/api/products/${encodeURIComponent(slug)}`, { cache: 'no-store' });
+    const res = await fetch(`${baseUrl}/api/products/by-id/${encodeURIComponent(id)}`, { cache: 'no-store' });
     if (res.ok) {
       const json = await res.json();
       if (json.product) {
@@ -95,7 +90,7 @@ export default async function ProductLayout({
           sku: p.slug,
           offers: {
             "@type": "Offer",
-            url: `${baseUrl}/product/${p.slug}`,
+            url: `${baseUrl}/product/${encodeURIComponent(p.category || 'uncategorized')}/${p.id}`,
             priceCurrency: "EGP",
             price: p.price,
             availability: p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
@@ -105,9 +100,7 @@ export default async function ProductLayout({
         };
       }
     }
-  } catch {
-    // Fallback — no JSON-LD
-  }
+  } catch {}
 
   return (
     <>

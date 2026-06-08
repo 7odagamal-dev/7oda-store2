@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Order } from '@/lib/supabase';
 import { adminFetch } from '@/lib/admin-fetch';
@@ -26,7 +26,7 @@ export default function AdminOrders() {
   const [totalPages, setTotalPages] = useState(1);
   const limit = 20;
 
-  const fetchOrders = async (p = page) => {
+  const fetchOrders = useCallback(async (p = page) => {
     try {
       const params = new URLSearchParams({ page: String(p), limit: String(limit) });
       if (searchTerm) params.set('search', searchTerm);
@@ -36,14 +36,14 @@ export default function AdminOrders() {
       const response = await res.json();
       setOrders(response.data || []);
       setTotalPages(response.totalPages || 1);
-    } catch (error) {
+    } catch {
       setOrders([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, searchTerm, statusFilter]);
 
-  useEffect(() => { fetchOrders(page); }, [page, searchTerm, statusFilter]);
+  useEffect(() => { fetchOrders(page); }, [page, searchTerm, statusFilter, fetchOrders]);
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     if (!confirm(`Change order status to "${newStatus}"?`)) return;
@@ -57,7 +57,7 @@ export default function AdminOrders() {
       setOrders(prev => prev.map(order =>
         order.id === orderId ? { ...order, status: newStatus, delivery_status: newStatus === 'delivered' ? 'delivered' : newStatus } : order
       ));
-    } catch (error) {
+    } catch {
       alert('Failed to update status');
     }
   };

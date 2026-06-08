@@ -48,6 +48,32 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // ── Redirect old /product/:slug to /product/:category/:id ──
+  const productSlugMatch = path.match(/^\/product\/([^/]+)$/);
+  if (productSlugMatch && supabaseUrl && supabaseAnonKey) {
+    const slug = decodeURIComponent(productSlugMatch[1]);
+    try {
+      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+        cookies: {
+          getAll() { return request.cookies.getAll() },
+          setAll() {},
+        },
+      });
+      const { data } = await supabase
+        .from('products')
+        .select('id, category')
+        .eq('slug', slug)
+        .maybeSingle();
+      if (data) {
+        return NextResponse.redirect(new URL(
+          `/product/${encodeURIComponent(data.category || 'uncategorized')}/${data.id}`,
+          request.url
+        ));
+      }
+    } catch {}
+    return NextResponse.redirect(new URL('/shop', request.url));
+  }
+
   // Attach store context headers for all routes
   if (host) {
     supabaseResponse.headers.set('x-store-host', host);

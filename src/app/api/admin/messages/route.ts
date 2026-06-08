@@ -39,7 +39,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to update message' }, { status: 500 });
     }
     return safeJson(data);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON input' }, { status: 400 });
   }
 }

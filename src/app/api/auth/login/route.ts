@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     await clearRateLimit(ip, 'store_login');
 
     // ── Create session ──
-    const { response } = await createSession({
+    await createSession({
       storeId: user.store_id,
       userId: user.id,
       userRole: user.role,

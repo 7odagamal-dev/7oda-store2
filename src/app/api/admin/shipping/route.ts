@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const { data, error } = await supabaseAdmin.from('shipping_rates').select('*').order('governorate');
     if (error) throw error;
     return NextResponse.json(data || []);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch shipping rates' }, { status: 500 });
   }
 }
@@ -21,6 +21,7 @@ export async function PUT(req: NextRequest) {
 
   const session = await getAdminSession(req);
   if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (session.role !== 'superadmin') return NextResponse.json({ error: 'Forbidden: superadmin only' }, { status: 403 });
   try {
     const body = await req.json();
     if (!body.id || typeof body.id !== 'string') {
@@ -33,7 +34,7 @@ export async function PUT(req: NextRequest) {
     }).eq('id', body.id);
     if (error) throw error;
     return safeJson({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to update shipping rate' }, { status: 500 });
   }
 }

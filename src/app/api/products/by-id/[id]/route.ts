@@ -13,16 +13,15 @@ function getServerSupabase() {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { slug } = await params;
+  const { id } = await params;
 
-  if (!slug || typeof slug !== 'string') {
-    return NextResponse.json({ error: 'Invalid slug' }, { status: 400 });
+  if (!id || typeof id !== 'string') {
+    return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
   }
 
   const supabase = getServerSupabase();
-
   if (!supabase) {
     return NextResponse.json({ product: null, source: 'no-db' });
   }
@@ -31,7 +30,7 @@ export async function GET(
     const { storeId } = await getStoreContext(req);
 
     const { data, error } = await filterByStore(
-      supabase.from('products').select('*').eq('slug', slug),
+      supabase.from('products').select('*').eq('id', id),
       storeId,
     ).maybeSingle();
 
@@ -49,10 +48,10 @@ export async function GET(
       storeId,
     ).limit(4);
 
-    return NextResponse.json({ 
-      product: data, 
+    return NextResponse.json({
+      product: data,
       relatedProducts: relatedData || [],
-      source: 'db' 
+      source: 'db'
     });
   } catch {
     return NextResponse.json({ product: null, source: 'error' }, { status: 500 });

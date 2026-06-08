@@ -97,6 +97,28 @@ export async function PUT(req: NextRequest) {
   const { data, error } = await updateQuery.select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // ── Coupon lifecycle: increment on confirm, decrement on cancel ──
+  if (current.status === 'pending' && status && status !== 'cancelled') {
+    const { data: couponOrder } = await supabaseAdmin
+      .from('orders')
+      .select('coupon_id')
+      .eq('id', id)
+      .single();
+    if (couponOrder?.coupon_id) {
+      await supabaseAdmin.rpc('atomic_increment_coupon', { p_coupon_id: couponOrder.coupon_id });
+    }
+  }
+  if (['confirmed', 'pending'].includes(current.status) && status === 'cancelled') {
+    const { data: couponOrder } = await supabaseAdmin
+      .from('orders')
+      .select('coupon_id')
+      .eq('id', id)
+      .single();
+    if (couponOrder?.coupon_id) {
+      await supabaseAdmin.rpc('atomic_decrement_coupon', { p_coupon_id: couponOrder.coupon_id });
+    }
+  }
+
   if (status === 'cancelled' && current.items) {
     const items = (current.items as Array<{ product_id: string; quantity: number }>)
       .map(i => ({ product_id: i.product_id, quantity: i.quantity }));
@@ -143,6 +165,28 @@ export async function DELETE(req: NextRequest) {
 
     if (!id) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
+    }
+
+    // ── Release reserved stock before delete ──
+    let fetchQuery = supabaseAdmin.from('orders').select('status, items').eq('id', id);
+    if (session.storeId) fetchQuery = filterByStore(fetchQuery, session.storeId);
+    const { data: orderToDelete, error: fetchErr } = await fetchQuery.single();
+
+    if (fetchErr || !orderToDelete) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    if (['confirmed', 'pending'].includes(orderToDelete.status) && orderToDelete.items) {
+      const items = (orderToDelete.items as Array<{ product_id: string; quantity: number }>)
+        .map(i => ({ product_id: i.product_id, quantity: i.quantity }));
+      const { error: releaseErr } = await supabaseAdmin.rpc('release_order_stock', {
+        order_id: id,
+        items: JSON.stringify(items),
+      });
+      if (releaseErr) {
+        console.error(`[Orders] Failed to release stock before delete for ${id}:`, releaseErr);
+        return NextResponse.json({ error: `Failed to release stock: ${releaseErr.message}` }, { status: 500 });
+      }
     }
 
     let deleteQuery = supabaseAdmin.from('orders').delete().eq('id', id);

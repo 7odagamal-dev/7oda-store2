@@ -4,12 +4,17 @@ import { getAdminSession } from '@/lib/auth';
 import { filterByStore } from '@/lib/db';
 import { csrfGuard, safeJson } from '@/lib/csrf';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { slugify } from '@/lib/slugify';
 
 function sanitizeProductBody(body: Record<string, unknown>): Record<string, unknown> | null {
   const allowed: Record<string, unknown> = {};
 
   if (typeof body.name === 'string' && body.name.trim()) allowed.name = body.name.trim().slice(0, 200);
-  if (typeof body.slug === 'string' && body.slug.trim()) allowed.slug = body.slug.trim().slice(0, 200).toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  if (typeof body.slug === 'string' && body.slug.trim()) {
+    allowed.slug = slugify(body.slug);
+  } else if (typeof body.name === 'string' && body.name.trim()) {
+    allowed.slug = slugify(body.name);
+  }
   if (typeof body.description === 'string') allowed.description = body.description.trim().slice(0, 5000);
   if (typeof body.price === 'number' && body.price >= 0) allowed.price = Math.round(body.price);
 
@@ -138,7 +143,7 @@ export async function PUT(req: NextRequest) {
 
   const allowed: Record<string, unknown> = {};
   if (typeof raw.name === 'string' && raw.name.trim()) allowed.name = raw.name.trim().slice(0, 200);
-  if (typeof raw.slug === 'string' && raw.slug.trim()) allowed.slug = raw.slug.trim().slice(0, 200).toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  if (typeof raw.slug === 'string' && raw.slug.trim()) allowed.slug = slugify(raw.slug);
   if (typeof raw.description === 'string') allowed.description = raw.description.trim().slice(0, 5000);
   if (typeof raw.price === 'number' && raw.price >= 0) allowed.price = Math.round(raw.price);
 

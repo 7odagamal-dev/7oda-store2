@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useWishlist } from '@/context/WishlistContext';
 import type { Product } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';

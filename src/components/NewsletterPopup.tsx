@@ -28,7 +28,7 @@ export default function NewsletterPopup() {
     }, 30000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [isAdmin]);
 
   const handleDismiss = () => {
     setIsVisible(false);

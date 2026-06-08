@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminFetch } from '@/lib/admin-fetch';
+import { slugify } from '@/lib/slugify';
 
 interface BlogPost {
   id: string;
@@ -36,6 +37,9 @@ export default function BlogPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
 
@@ -147,14 +151,58 @@ export default function BlogPage() {
     }
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await adminFetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const { url } = await res.json();
+        setForm(prev => ({ ...prev, cover_image: url }));
+      } else {
+        alert('Upload failed');
+      }
+    } catch {
+      alert('Upload failed');
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleInsertImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await adminFetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const { url } = await res.json();
+        setForm(prev => ({ ...prev, content: prev.content + `\n<img src="${url}" alt="" />\n` }));
+      } else {
+        alert('Upload failed');
+      }
+    } catch {
+      alert('Upload failed');
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
   const generateSlug = () => {
-    const slug = form.title
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
-    setForm(prev => ({ ...prev, slug }));
+    setForm(prev => ({ ...prev, slug: slugify(form.title) }));
   };
 
   const filtered = posts.filter(p => {
@@ -276,17 +324,38 @@ export default function BlogPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1A1A1A]">Cover Image URL</label>
-                <input
-                  type="text" value={form.cover_image}
-                  onChange={e => setForm(p => ({ ...p, cover_image: e.target.value }))}
-                  placeholder="https://..."
-                  className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-sm focus:border-[#8BA4B8] focus:outline-none transition-all"
-                />
+                <label className="block text-sm font-medium mb-2 text-[#1A1A1A]">Cover Image</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text" value={form.cover_image}
+                    onChange={e => setForm(p => ({ ...p, cover_image: e.target.value }))}
+                    placeholder="Paste URL or upload one..."
+                    className="flex-1 px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-sm focus:border-[#8BA4B8] focus:outline-none transition-all"
+                  />
+                  <input ref={coverInputRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+                  <button onClick={() => coverInputRef.current?.click()} disabled={uploading}
+                    className="px-4 py-3 bg-[#F3F5F8] border border-[#E5E7EB] rounded-xl text-xs text-[#6B7280] hover:bg-[#E5E7EB] transition-all disabled:opacity-50"
+                  >
+                    {uploading ? 'Uploading...' : 'Upload'}
+                  </button>
+                </div>
+                {form.cover_image && (
+                  <div className="mt-2 relative w-full h-32 rounded-xl overflow-hidden bg-[#F3F5F8]">
+                    <img src={form.cover_image} alt="Cover preview" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  </div>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2 text-[#1A1A1A]">Content <span className="text-rose-400">*</span></label>
+                <div className="flex gap-2 mb-2">
+                  <input ref={imageInputRef} type="file" accept="image/*" onChange={handleInsertImage} className="hidden" />
+                  <button onClick={() => imageInputRef.current?.click()} disabled={uploading}
+                    className="px-3 py-1.5 bg-[#F3F5F8] border border-[#E5E7EB] rounded-lg text-xs text-[#6B7280] hover:bg-[#E5E7EB] transition-all disabled:opacity-50"
+                  >
+                    {uploading ? 'Uploading...' : 'Insert Image'}
+                  </button>
+                </div>
                 <textarea value={form.content} onChange={e => setForm(p => ({ ...p, content: e.target.value }))} rows={12}
                   placeholder="Write your post content here... Supports basic HTML tags (<b>, <i>, <a>, <img>, etc.)"
                   className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-sm focus:border-[#8BA4B8] focus:outline-none transition-all resize-none font-mono"

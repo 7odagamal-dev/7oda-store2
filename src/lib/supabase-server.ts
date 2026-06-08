@@ -7,7 +7,8 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
 export async function createClient() {
   const cookieStore = await cookies()
-  return createServerClient(supabaseUrl!, supabaseAnonKey, {
+  if (!supabaseUrl) throw new Error('Missing SUPABASE_URL')
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() { return cookieStore.getAll() },
       setAll(cookiesToSet) {

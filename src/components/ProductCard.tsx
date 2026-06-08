@@ -23,7 +23,7 @@ interface ProductCardProps {
   flashSale?: FlashSaleInfo;
 }
 
-function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProps) {
+function ProductCardComponent({ product, flashSale }: ProductCardProps) {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const [touchToggled, setTouchToggled] = useState(false);
@@ -32,8 +32,8 @@ function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProp
   const { toggleWishlist, isWishlisted } = useWishlist();
 
   const hasDiscount = product.old_price && product.old_price > product.price;
-  const discountPercentage = hasDiscount
-    ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
+  const discountPercentage = hasDiscount && product.old_price
+    ? Math.round(((product.old_price - product.price) / product.old_price) * 100)
     : 0;
 
   const showSecondImage = isHovered || touchToggled;
@@ -48,7 +48,7 @@ function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProp
 
   return (
     <div>
-      <Link href={`/product/${product.slug}`} className="block group">
+      <Link href={`/product/${encodeURIComponent(product.category || 'uncategorized')}/${product.id}`} className="block group">
         <div
           className="relative overflow-hidden rounded-[var(--radius-xl)] bg-card-hover mb-[var(--space-md)] shadow-sm group-hover:shadow-md transition-shadow duration-500"
           style={{ aspectRatio: '3/4' }}
@@ -114,7 +114,7 @@ function ProductCardComponent({ product, index = 0, flashSale }: ProductCardProp
             >
               Quick View
             </button>
-            <button onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/product/${product.slug}`); }}
+            <button onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/product/${encodeURIComponent(product.category || 'uncategorized')}/${product.id}`); }}
               className="px-[var(--space-md)] py-[var(--space-sm)] border-2 border-foreground text-foreground text-[var(--text-xs)] tracking-wider uppercase font-semibold rounded-full hover:bg-foreground hover:text-background transition-all"
             >
               Details

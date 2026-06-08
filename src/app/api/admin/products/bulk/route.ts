@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const buf = Buffer.from(await file.arrayBuffer())
     const wb = XLSX.read(buf, { type: 'buffer' })
     const ws = wb.Sheets[wb.SheetNames[0]]
-    const rows: any[] = XLSX.utils.sheet_to_json(ws)
+    const rows = XLSX.utils.sheet_to_json(ws) as Record<string, unknown>[]
 
     if (!rows.length) return NextResponse.json({ error: 'File is empty' }, { status: 400 })
 

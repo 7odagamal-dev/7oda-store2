@@ -8,12 +8,13 @@ export interface CartItem {
   product: Product;
   quantity: number;
   size: string;
-  image?: string; // ensures image consistency from localStorage
+  image?: string;
+  unitPrice?: number;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product, size: string, quantity?: number) => void;
+  addItem: (product: Product, size: string, quantity?: number, unitPrice?: number) => void;
   removeItem: (productId: string, size: string) => void;
   updateQuantity: (productId: string, size: string, quantity: number) => void;
   clearCart: () => void;
@@ -23,7 +24,7 @@ interface CartContextType {
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; product: Product; size: string; quantity: number }
+  | { type: 'ADD_ITEM'; product: Product; size: string; quantity: number; unitPrice?: number }
   | { type: 'REMOVE_ITEM'; productId: string; size: string }
   | { type: 'UPDATE_QUANTITY'; productId: string; size: string; quantity: number }
   | { type: 'CLEAR' }
@@ -44,7 +45,7 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
       }
       return [
         ...state,
-        { product: action.product, quantity: action.quantity, size: action.size, image: action.product.main_image }
+        { product: action.product, quantity: action.quantity, size: action.size, image: action.product.main_image, unitPrice: action.unitPrice }
       ];
     }
     case 'REMOVE_ITEM':
@@ -102,8 +103,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, hydrated]);
 
-  const addItem = useCallback((product: Product, size: string, quantity: number = 1) => {
-    dispatch({ type: 'ADD_ITEM', product, size, quantity });
+  const addItem = useCallback((product: Product, size: string, quantity: number = 1, unitPrice?: number) => {
+    dispatch({ type: 'ADD_ITEM', product, size, quantity, unitPrice });
   }, []);
 
   const removeItem = useCallback((productId: string, size: string) => {
@@ -119,7 +120,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const subtotal = items.reduce((sum, item) => {
-    const price = item.product.price ?? 0;
+    const price = item.unitPrice ?? item.product.price ?? 0;
     return sum + (price * item.quantity);
   }, 0);
 

@@ -10,21 +10,31 @@ vi.mock('@/lib/supabase-server', () => ({
 }));
 vi.mock('@/lib/shipping', () => ({ calculateShippingCost: vi.fn().mockReturnValue(100) }));
 
-// Mock supabase-admin to prevent crashes on .from() call (though filterByStore handles the chain)
 vi.mock('@/lib/supabase-admin', () => {
-  const eq = vi.fn();
+  function cr(data: unknown) {
+    const p = Promise.resolve({ data, error: data === null ? null : null });
+    return new Proxy(p, {
+      get(_t, prop: string | symbol) {
+        if (prop === 'then') return p.then.bind(p);
+        if (prop === 'catch') return p.catch.bind(p);
+        if (prop === 'finally') return p.finally.bind(p);
+        if (prop === 'single') return vi.fn().mockResolvedValue({ data, error: data === null ? { message: 'not found' } : null });
+        return () => cr(data);
+      },
+    });
+  }
   return {
     supabaseAdmin: {
       from: vi.fn(() => ({
-        select: vi.fn(() => ({ eq })),
+        select: vi.fn(() => cr(null)),
         insert: vi.fn(() => ({
           select: vi.fn(() => ({
-            single: vi.fn(),
+            single: vi.fn().mockResolvedValue({ data: { id: 'order-id' }, error: null }),
           })),
         })),
-        delete: vi.fn(() => ({ eq: vi.fn() })),
+        delete: vi.fn(() => cr(null)),
       })),
-      rpc: vi.fn(),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     },
   };
 });
@@ -36,6 +46,16 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 
 const mockCheckRL = checkRateLimit as ReturnType<typeof vi.fn>;
 const mockFrom = supabaseAdmin.from as ReturnType<typeof vi.fn>;
+const mockRpc = supabaseAdmin.rpc as ReturnType<typeof vi.fn>;
+
+// Store mock responses per table
+interface MockResponses {
+  products?: unknown;
+  flash_sales?: unknown;
+  coupons?: unknown;
+  orders?: { id: string };
+}
+let mockResponses: MockResponses = {};
 
 function makeReq(body: unknown): NextRequest {
   return new NextRequest('http://localhost/api/checkout', {
@@ -57,41 +77,44 @@ const validOrderBody = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockCheckRL.mockResolvedValue(true);
+  mockResponses = {};
+  mockRpc.mockResolvedValue({ data: null, error: null });
 
-  // Default: products are in stock
-  const eq = vi.fn();
-  mockFrom.mockReturnValue({
-    select: vi.fn(() => ({ eq })),
-    insert: vi.fn(() => ({
-      select: vi.fn(() => ({
-        single: vi.fn().mockResolvedValue({ data: { id: 'new-order-id' }, error: null }),
+  const cr = (data: unknown) => {
+    const p = Promise.resolve({ data, error: data === null ? null : null });
+    return new Proxy(p, {
+      get(_t, prop: string | symbol) {
+        if (prop === 'then') return p.then.bind(p);
+        if (prop === 'catch') return p.catch.bind(p);
+        if (prop === 'finally') return p.finally.bind(p);
+        if (prop === 'single') return vi.fn().mockResolvedValue({ data, error: data === null ? { message: 'not found' } : null });
+        return () => cr(data);
+      },
+    });
+  };
+
+  mockFrom.mockImplementation((table: string) => {
+    const resp = mockResponses[table as keyof MockResponses];
+    const data = resp !== undefined ? resp : null;
+    return {
+      select: vi.fn(() => cr(data)),
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn().mockResolvedValue({ data: { id: (mockResponses.orders?.id) || 'order-id' }, error: null }),
+        })),
       })),
-    })),
-    delete: vi.fn(() => ({ eq: vi.fn() })),
+      delete: vi.fn(() => cr(null)),
+    };
   });
-  // .in('id', ...).eq('store_id', storeId) — products query
-  // Actually we need .select().in().eq() for products lookup
-  // Mock this more carefully:
 });
 
 describe('POST /api/checkout — idempotency', () => {
   it('processes new request when no idempotency key given', async () => {
-    // Mock products query
-    const selectChain = {
-      eq: vi.fn(),
-      in: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: [{ id: 'prod-1', name: 'Test', price: 500, main_image: null, stock: 10, reserved_stock: 0 }], error: null }) })),
+    mockResponses = {
+      products: [{ id: 'prod-1', name: 'Test', price: 500, main_image: null, stock: 10, reserved_stock: 0 }],
+      orders: { id: 'new-order-id' },
     };
-    mockFrom.mockReturnValue({
-      select: vi.fn(() => selectChain),
-      insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          single: vi.fn().mockResolvedValue({ data: { id: 'new-order-id' }, error: null }),
-        })),
-      })),
-      delete: vi.fn(() => ({ eq: vi.fn() })),
-    });
-
-    (supabaseAdmin.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: null, error: null });
 
     const res = await POST(makeReq(validOrderBody));
     expect(res.status).toBe(201);
@@ -113,20 +136,10 @@ describe('POST /api/checkout — idempotency', () => {
   });
 
   it('stores idempotency key after successful new order', async () => {
-    const selectChain = {
-      eq: vi.fn(),
-      in: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: [{ id: 'prod-1', name: 'Test', price: 500, main_image: null, stock: 10, reserved_stock: 0 }], error: null }) })),
+    mockResponses = {
+      products: [{ id: 'prod-1', name: 'Test', price: 500, main_image: null, stock: 10, reserved_stock: 0 }],
+      orders: { id: 'order-42' },
     };
-    mockFrom.mockReturnValue({
-      select: vi.fn(() => selectChain),
-      insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          single: vi.fn().mockResolvedValue({ data: { id: 'order-42' }, error: null }),
-        })),
-      })),
-      delete: vi.fn(() => ({ eq: vi.fn() })),
-    });
-    (supabaseAdmin.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: null, error: null });
 
     const res = await POST(makeReq({ ...validOrderBody, idempotency_key: 'fresh-key' }));
     expect(res.status).toBe(201);

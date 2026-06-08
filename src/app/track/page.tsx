@@ -1,12 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { safeParseArray, StorageService } from '@/lib/storage';
-
-const orderStorage = new StorageService('og-');
+import { safeParseArray } from '@/lib/storage';
 
 const deliveryStatuses = [
   { value: 'pending', label: 'Pending', color: 'bg-amber-100 text-amber-700', icon: '📋' },

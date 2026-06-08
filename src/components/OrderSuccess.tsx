@@ -22,7 +22,7 @@ export function OrderSuccess({
   orderId: string;
   orderSummary: OrderSummaryData;
   paymentMethod: string;
-  paymentDetails: { vodafone_cash: string; instapay: string };
+  paymentDetails: { vodafone_cash: string; instapay: string; instagram?: string; bank?: string };
 }) {
   return (
     <div className="min-h-screen pt-24 pb-20 px-4 bg-[#F8F9FB] flex items-center justify-center">
@@ -93,8 +93,16 @@ export function OrderSuccess({
             <h3 className="text-sm font-semibold text-[#1A1A1A] mb-3">Payment Instructions</h3>
             <p className="text-xs text-[#6B7280] mb-3">Please transfer <span className="font-bold text-[#1A1A1A]">{orderSummary.finalAmount.toLocaleString()} EGP</span> to:</p>
             <div className="bg-white p-4 rounded-lg border border-[#E5E7EB] space-y-2 text-xs">
-              <div className="flex justify-between"><span className="text-[#6B7280]">Vodafone Cash:</span><span className="font-bold text-[#1A1A1A]">{paymentDetails.vodafone_cash || '01024627197'}</span></div>
-              <div className="flex justify-between"><span className="text-[#6B7280]">InstaPay:</span><span className="font-bold text-[#1A1A1A]">{paymentDetails.instapay || 'youssefwhab@instapay'}</span></div>
+              {paymentDetails.vodafone_cash ? (
+                <div className="flex justify-between"><span className="text-[#6B7280]">Vodafone Cash:</span><span className="font-bold text-[#1A1A1A]">{paymentDetails.vodafone_cash}</span></div>
+              ) : paymentDetails.instapay ? null : (
+                <div className="flex justify-between"><span className="text-[#6B7280]">Vodafone Cash:</span><span className="font-bold text-[#1A1A1A]">Contact us for details</span></div>
+              )}
+              {paymentDetails.instapay ? (
+                <div className="flex justify-between"><span className="text-[#6B7280]">InstaPay:</span><span className="font-bold text-[#1A1A1A]">{paymentDetails.instapay}</span></div>
+              ) : paymentDetails.vodafone_cash ? null : (
+                <div className="flex justify-between"><span className="text-[#6B7280]">InstaPay:</span><span className="font-bold text-[#1A1A1A]">Contact us for details</span></div>
+              )}
             </div>
             <div className="mt-3 space-y-1 text-xs text-[#6B7280]">
               <p>1. Take a screenshot of the transaction</p>
@@ -104,10 +112,12 @@ export function OrderSuccess({
         )}
 
         <div className="space-y-3">
-          <a href="https://www.instagram.com/og.oldgold?igsh=bzlvMDhnejFzbWMy&utm_source=qr" target="_blank" rel="noopener noreferrer"
-            className="block w-full py-3.5 bg-[#8BA4B8] text-white text-sm font-semibold tracking-wider uppercase rounded-xl hover:bg-[#6B8BA0] transition-all">
-            Confirm on Instagram
-          </a>
+          {paymentDetails.instagram && (
+            <a href={paymentDetails.instagram} target="_blank" rel="noopener noreferrer"
+              className="block w-full py-3.5 bg-[#8BA4B8] text-white text-sm font-semibold tracking-wider uppercase rounded-xl hover:bg-[#6B8BA0] transition-all">
+              Confirm on Instagram
+            </a>
+          )}
           <Link href="/track"
             className="block w-full py-3.5 border border-[#8BA4B8] text-[#8BA4B8] text-sm font-semibold rounded-xl hover:bg-[#8BA4B8] hover:text-white transition-all">
             Track My Order

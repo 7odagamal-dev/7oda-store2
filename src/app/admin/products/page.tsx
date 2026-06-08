@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Product } from '@/lib/supabase';
 import { adminFetch } from '@/lib/admin-fetch';
+import { slugify } from '@/lib/slugify';
 
 interface ProductImage {
   id: string;
@@ -138,12 +139,12 @@ export default function AdminProducts() {
     }
     setSubmitting(true);
     const hasOldPrice = formData.old_price && formData.old_price > 0;
-    const discountPercentage = hasOldPrice && formData.price
-      ? Math.round(((formData.old_price! - formData.price) / formData.old_price!) * 100)
+    const discountPercentage = hasOldPrice && formData.price && formData.old_price
+      ? Math.round(((formData.old_price - formData.price) / formData.old_price) * 100)
       : null;
     const productData = {
       name: formData.name,
-      slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+      slug: formData.slug && formData.slug.trim() ? slugify(formData.slug) : slugify(formData.name),
       description: formData.description,
       price: formData.price,
       old_price: hasOldPrice ? formData.old_price : null,

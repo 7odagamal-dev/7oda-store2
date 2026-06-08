@@ -64,6 +64,9 @@ export async function POST(req: NextRequest) {
         discount_type: body.discount_type,
         discount_value: dv,
         image: body.image?.trim().slice(0, 500) || null,
+        image_source: body.image_source || 'custom',
+        image_layout: body.image_layout || 'side-by-side',
+        image_data: body.image_data || {},
         is_active: body.is_active !== false,
       }])
       .select()
@@ -117,7 +120,11 @@ export async function PUT(req: NextRequest) {
       updates.discount_value = dv;
     }
     if (body.image !== undefined) updates.image = body.image?.trim().slice(0, 500) || null;
+    if (body.image_source !== undefined) updates.image_source = body.image_source;
+    if (body.image_layout !== undefined) updates.image_layout = body.image_layout;
+    if (body.image_data !== undefined) updates.image_data = body.image_data;
     if (body.is_active !== undefined) updates.is_active = body.is_active === true;
+    updates.updated_at = new Date().toISOString();
 
     const storeId = session.storeId || '00000000-0000-0000-0000-000000000001';
     const { data: bundle, error } = await supabaseAdmin

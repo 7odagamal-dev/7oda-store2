@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAdminSession } from '@/lib/auth';
 import { assertValidOrderTransition } from '@/lib/order-state';
 import { filterByStore } from '@/lib/db';
-import { csrfGuard, safeJson } from '@/lib/csrf';
+import { csrfGuard } from '@/lib/csrf';
 
 export async function GET(req: NextRequest) {
   const session = await getAdminSession(req);

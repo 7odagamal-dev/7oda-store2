@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useCart } from '@/context/CartContext';
-import { calculateShippingCost, SHIPPING_RANGE, GOVERNORATES } from '@/lib/shipping';
+import { SHIPPING_RANGE, GOVERNORATES } from '@/lib/shipping';
 import { StorageService } from '@/lib/storage';
-import { OrderSuccess, type OrderSummaryData } from '@/components/OrderSuccess';
+import { OrderSuccess } from '@/components/OrderSuccess';
 
 const orderStorage = new StorageService('og-');
 
@@ -27,8 +27,6 @@ export default function Checkout() {
   const [shippingCost, setShippingCost] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<'online_transfer' | 'cash_on_delivery' | 'paymob'>('online_transfer');
   const [paymentDetails, setPaymentDetails] = useState({ vodafone_cash: '', instapay: '' });
-  const [paymobUrl, setPaymobUrl] = useState('');
-  const [paymobLoading, setPaymobLoading] = useState(false);
   const [paymobError, setPaymobError] = useState('');
 
   const [couponCode, setCouponCode] = useState('');
@@ -134,7 +132,6 @@ export default function Checkout() {
     setLoading(true);
     // For Paymob, create the order first, then redirect to payment
     if (paymentMethod === 'paymob') {
-      setPaymobLoading(true);
       setPaymobError('');
       try {
         // Create order in pending status
@@ -182,7 +179,6 @@ export default function Checkout() {
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Payment failed';
         setPaymobError(message);
-        setPaymobLoading(false);
         setLoading(false);
       }
       return;
@@ -236,7 +232,7 @@ export default function Checkout() {
     } finally {
       setLoading(false);
     }
-  }, [items, formData, finalAmount, clearCart, paymentMethod, subtotal, shippingCost, couponDiscount, couponApplied, couponCode]);
+  }, [items, formData, finalAmount, clearCart, paymentMethod, subtotal, shippingCost, couponDiscount, couponApplied, couponCode, idempotencyKey]);
 
   if (!mounted) {
     return (

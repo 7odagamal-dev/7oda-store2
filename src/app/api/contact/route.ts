@@ -15,8 +15,6 @@ export async function POST(req: NextRequest) {
     req.headers.get('x-forwarded-for') ??
     req.headers.get('x-real-ip') ??
     'unknown';
-  const now = Date.now();
-
   const isAllowed = await checkRateLimit(ip, 'contact', MAX_MESSAGES, WINDOW_MS);
   if (!isAllowed) {
     return NextResponse.json(

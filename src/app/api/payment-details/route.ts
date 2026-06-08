@@ -4,6 +4,7 @@ export async function GET() {
   const vodafone_cash = process.env.PAYMENT_VODAFONE_CASH;
   const instapay = process.env.PAYMENT_INSTAPAY;
   const bank = process.env.PAYMENT_BANK_DETAILS;
+  const instagram = process.env.PAYMENT_INSTAGRAM_URL;
 
   if (!vodafone_cash && !instapay && !bank) {
     return NextResponse.json({ error: 'Payment details not configured' }, { status: 503 });
@@ -13,5 +14,6 @@ export async function GET() {
     vodafone_cash: vodafone_cash || null,
     instapay: instapay || null,
     bank: bank || null,
+    instagram: instagram || null,
   });
 }
