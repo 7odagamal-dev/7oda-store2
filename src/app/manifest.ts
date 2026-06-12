@@ -1,9 +1,9 @@
-import type { MetadataRoute } from 'next'
+﻿import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'OG Old Gold | Premium Luxury Fashion Store',
-    short_name: 'OG Old Gold',
+    name: '7H  | Premium Luxury Fashion Store',
+    short_name: '7H ',
     description: 'Premium luxury fashion in Egypt. Shop exclusive T-shirts, hoodies, and jackets.',
     start_url: '/',
     display: 'standalone',

@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { supabaseAnon } from '@/lib/supabase-anon';
 import { getStoreContext } from '@/lib/store-context';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { createClient } from '@/lib/supabase-server';
 import { calculateShippingCost } from '@/lib/shipping';
 import { getIdempotencyResult, setIdempotencyResult } from '@/lib/idempotency';
-
-function stripHtml(str: string): string {
-  return str.replace(/<[^>]*>/g, '');
-}
+import { log, newCorrelationId } from '@/lib/logger';
+import { normalizeEmail, stripHtml } from '@/lib/email-utils';
+import crypto from 'crypto';
 
 const VALID_PAYMENT_METHODS = ['cash_on_delivery', 'online_transfer', 'paymob'] as const;
 type PaymentMethod = (typeof VALID_PAYMENT_METHODS)[number];
@@ -23,12 +23,85 @@ interface CheckoutItem {
   quantity: number;
 }
 
+interface DbProduct {
+  id: string;
+  name: string;
+  price: number;
+  main_image: string | null;
+  stock: number;
+  reserved_stock: number | null;
+}
+
+interface DbFlashSale {
+  product_id: string;
+  discount_percentage: number;
+}
+
+interface DbCoupon {
+  id: string;
+  code: string;
+  is_active: boolean;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  min_order: number;
+  max_uses: number | null;
+  used_count: number;
+  expires_at: string | null;
+  coupon_type: string;
+  linked_email: string | null;
+}
+
+function validateCoupon(
+  coupon: DbCoupon | null,
+  calculatedTotal: number,
+  customerEmail: string | null,
+): { valid: boolean; discount?: number; couponId?: string } {
+  if (!coupon || !coupon.is_active) return { valid: false };
+  if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) return { valid: false };
+  if (coupon.max_uses && coupon.used_count >= coupon.max_uses) return { valid: false };
+  if (calculatedTotal < coupon.min_order) return { valid: false };
+
+  if (coupon.linked_email) {
+    if (!customerEmail) return { valid: false };
+    const normalizedInput = normalizeEmail(customerEmail);
+    if (!normalizedInput || normalizedInput !== coupon.linked_email) return { valid: false };
+  }
+
+  let discount = 0;
+  if (coupon.discount_type === 'percentage') {
+    discount = Math.round((calculatedTotal * coupon.discount_value) / 100);
+  } else {
+    discount = coupon.discount_value;
+  }
+  if (discount > calculatedTotal) discount = calculatedTotal;
+
+  return { valid: true, discount, couponId: coupon.id };
+}
+
 export async function POST(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
   try {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
     const allowed = await checkRateLimit(ip, 'checkout', 10, 60000);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
+    // ── Origin CSRF check ──
+    const origin = req.headers.get('origin') || req.headers.get('referer') || '';
+    const host = req.headers.get('host') || '';
+    const allowedOrigins = [host, `www.${host}`];
+    if (origin) {
+      try {
+        const originHost = new URL(origin).host;
+        if (!allowedOrigins.includes(originHost)) {
+          log('warn', { correlationId, route: '/api/checkout', method: 'POST', durationMs: Date.now() - startMs, statusCode: 403, level: 'warn', message: 'CSRF: origin mismatch', metadata: { origin, host } });
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     const body = await req.json();
@@ -40,12 +113,13 @@ export async function POST(req: NextRequest) {
     const notes = body.notes ? stripHtml(body.notes.trim().slice(0, 500)) : '';
     const payment_method = body.payment_method;
     const coupon_code = body.coupon_code;
-    const idempotency_key = body.idempotency_key;
+    const idempotency_key = body.idempotency_key || crypto.randomUUID();
     const items = body.items;
+    const rawEmail = stripHtml(body.email || body.customer_email || '').trim();
+    const customer_email = normalizeEmail(rawEmail);
 
-    // ── Idempotency check: if this key was already processed, return stored result ──
     if (idempotency_key) {
-      const existingOrderId = getIdempotencyResult(idempotency_key);
+      const existingOrderId = await getIdempotencyResult(idempotency_key);
       if (existingOrderId) {
         return NextResponse.json({ success: true, orderId: existingOrderId, idempotent: true }, { status: 200 });
       }
@@ -70,7 +144,6 @@ export async function POST(req: NextRequest) {
 
     const { storeId } = await getStoreContext(req);
 
-    // ── Capture user_id if logged in ──
     let userId: string | null = null
     try {
       const supabase = await createClient()
@@ -78,9 +151,8 @@ export async function POST(req: NextRequest) {
       userId = user?.id || null
     } catch {}
 
-    // ── Fetch products WITH store isolation ──
     const productIds = items.map((item: CheckoutItem) => item.product_id);
-    const { data: products, error: productsError } = await supabaseAdmin
+    const { data: products, error: productsError } = await supabaseAnon
       .from('products')
       .select('id, name, price, main_image, stock, reserved_stock')
       .in('id', productIds)
@@ -90,22 +162,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to validate products' }, { status: 500 });
     }
 
-    // ── Fetch active flash sales ──
-    const { data: flashSales } = await supabaseAdmin
+    const { data: flashSalesRaw } = await supabaseAnon
       .from('flash_sales')
       .select('product_id, discount_percentage')
       .eq('store_id', storeId)
       .eq('is_active', true)
       .gt('ends_at', new Date().toISOString());
-
-    interface DbProduct {
-      id: string;
-      name: string;
-      price: number;
-      main_image: string | null;
-      stock: number;
-      reserved_stock: number | null;
-    }
+    const flashSales = (flashSalesRaw || []) as DbFlashSale[];
 
     let calculatedTotal = 0;
     const orderItems: Array<{
@@ -144,34 +207,30 @@ export async function POST(req: NextRequest) {
       orderItems.push({
         product_id: dbProduct.id,
         name: dbProduct.name,
-        size: item.size,
+        size: stripHtml(item.size || '').slice(0, 50),
         quantity: qty,
         price: unitPrice,
         image: dbProduct.main_image || null,
       });
     }
 
-    // ── Coupon calculation (read-only — no mutation yet) ──
+    // ── Coupon validation with email check ──
     let couponDiscount = 0;
     let couponId: string | null = null;
     if (coupon_code) {
-      const { data: coupon, error: couponError } = await supabaseAdmin
+      const { data: couponRaw, error: couponError } = await supabaseAdmin
         .from('coupons')
         .select('*')
         .eq('code', coupon_code.toUpperCase())
         .eq('store_id', storeId)
         .single();
-      if (!couponError && coupon && coupon.is_active) {
-        if (!coupon.expires_at || new Date(coupon.expires_at) > new Date()) {
-          if (!coupon.max_uses || coupon.used_count < coupon.max_uses) {
-            if (calculatedTotal >= coupon.min_order) {
-              couponDiscount = coupon.discount_type === 'percentage'
-                ? Math.round((calculatedTotal * coupon.discount_value) / 100)
-                : coupon.discount_value;
-              if (couponDiscount > calculatedTotal) couponDiscount = calculatedTotal;
-              couponId = coupon.id;
-            }
-          }
+      const coupon = couponRaw as DbCoupon | null;
+      if (!couponError && coupon) {
+        const result = validateCoupon(coupon, calculatedTotal, customer_email);
+        if (result.valid && result.discount !== undefined) {
+          couponDiscount = result.discount;
+          couponId = result.couponId || null;
+          log('info', { correlationId, route: '/api/checkout', method: 'POST', durationMs: Date.now() - startMs, statusCode: 200, level: 'info', message: 'Coupon applied', metadata: { couponId, discount: couponDiscount }});
         }
       }
     }
@@ -192,21 +251,34 @@ export async function POST(req: NextRequest) {
     }
 
     function generateDisplayId(items: Array<{ name?: string }>): string {
-      const prefix = transliterate(items[0]?.name || 'OG')
+      const prefix = transliterate(items[0]?.name || '7H')
         .replace(/[^a-zA-Z0-9]/g, '')
         .slice(0, 5)
-        .toUpperCase() || 'OG';
+        .toUpperCase() || '7H';
       const ts = Date.now().toString(36).slice(-4).toUpperCase();
       const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
       return `${prefix}-${ts}${rand}`;
     }
 
-    // ── Step 1: Create order FIRST ──
+    // ── Step 1: Atomic coupon increment (prevents double-use race condition) ──
+    if (couponId) {
+      const { data: incResult, error: incError } = await supabaseAdmin.rpc(
+        'atomic_increment_coupon',
+        { p_coupon_id: couponId },
+      );
+      if (incError || incResult === false) {
+        log('error', { correlationId, route: '/api/checkout', method: 'POST', durationMs: Date.now() - startMs, statusCode: 409, level: 'error', message: 'Coupon increment failed — max_uses reached', metadata: { couponId }});
+        return NextResponse.json({ error: 'This coupon has already been used' }, { status: 409 });
+      }
+    }
+
+    // ── Step 2: Create order ──
     const orderData: Record<string, unknown> = {
       store_id: storeId,
       display_id: generateDisplayId(orderItems),
       ...(userId ? { user_id: userId } : {}),
       customer_name,
+      ...(customer_email ? { customer_email } : {}),
       phone: cleanPhone,
       governorate,
       city,
@@ -216,6 +288,7 @@ export async function POST(req: NextRequest) {
       status: 'pending',
       total: finalTotal,
       items: orderItems,
+      ip_address: ip,
     };
 
     const { data: order, error: insertError } = await supabaseAdmin
@@ -223,16 +296,29 @@ export async function POST(req: NextRequest) {
       .insert([{
         ...orderData,
         ...(couponId ? { coupon_id: couponId } : {}),
+        ...(idempotency_key ? { idempotency_key } : {}),
       }])
       .select('id')
       .single();
 
     if (insertError) {
-      console.error('[Checkout] Order insert error:', insertError.message);
+      log('error', { correlationId, route: '/api/checkout', method: 'POST', durationMs: Date.now() - startMs, statusCode: 500, level: 'error', message: 'Order insert failed', error: insertError.message });
+      if (couponId) {
+        await supabaseAdmin.rpc('atomic_decrement_coupon', { p_coupon_id: couponId });
+      }
       return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
     }
 
-    // ── Step 2: Reserve stock ──
+    // ── Update coupon with order id and timestamp ──
+    if (couponId) {
+      await supabaseAdmin.from('coupons').update({
+        used_by_order_id: order.id,
+        used_at: new Date().toISOString(),
+        used_by_ip: ip,
+      }).eq('id', couponId);
+    }
+
+    // ── Step 3: Reserve stock ──
     const reservePayload = orderItems.map(i => ({ product_id: i.product_id, quantity: i.quantity }));
     const { error: reserveError } = await supabaseAdmin.rpc('reserve_order_stock', {
       order_id: order.id,
@@ -240,23 +326,25 @@ export async function POST(req: NextRequest) {
     });
 
     if (reserveError) {
-      console.error('[Checkout] Stock reservation failed (run schema.sql to deploy reserve_order_stock RPC):', reserveError.message);
+      log('error', { correlationId, route: '/api/checkout', method: 'POST', durationMs: Date.now() - startMs, statusCode: 409, level: 'error', message: 'Stock reservation failed', error: reserveError.message });
       await supabaseAdmin.from('orders').delete().eq('id', order.id);
+      if (couponId) {
+        await supabaseAdmin.rpc('atomic_decrement_coupon', { p_coupon_id: couponId });
+      }
       return NextResponse.json({
-        error: 'Failed to reserve stock. Ensure the database schema is deployed.',
+        error: `Stock reservation failed: ${reserveError.message}`,
       }, { status: 409 });
     }
 
-    // Coupon increment is deferred to payment confirmation (callback or admin confirm)
-    // Store idempotency key so retries won't create duplicate orders
     if (idempotency_key) {
       setIdempotencyResult(idempotency_key, order.id);
     }
 
-    return NextResponse.json({ success: true, orderId: order.id }, { status: 201 });
+    log('info', { correlationId, route: '/api/checkout', method: 'POST', durationMs: Date.now() - startMs, statusCode: 201, level: 'info', message: 'Order created', metadata: { orderId: order.id }});
+    return NextResponse.json({ success: true, orderId: order.id, total: finalTotal, idempotency_key }, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('[Checkout] Unexpected error:', message);
+    log('error', { correlationId, route: '/api/checkout', method: 'POST', durationMs: Date.now() - startMs, statusCode: 500, level: 'error', message: 'Unexpected error', error: message, metadata: { stack: err instanceof Error ? err.stack : undefined }});
     return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
   }
 }

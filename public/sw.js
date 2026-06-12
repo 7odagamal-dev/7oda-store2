@@ -1,10 +1,10 @@
-const CACHE_NAME = 'og-old-gold-v1'
+﻿const CACHE_NAME = '7H-old-gold-v1'
 const STATIC_ASSETS = [
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/favicon.ico',
 ]
-const API_CACHE = 'og-api-v1'
+const API_CACHE = '7H-api-v1'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

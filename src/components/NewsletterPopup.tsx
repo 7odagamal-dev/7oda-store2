@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 export default function NewsletterPopup() {
@@ -10,17 +10,19 @@ export default function NewsletterPopup() {
   const [isVisible, setIsVisible] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
   const [step, setStep] = useState<'form' | 'success' | 'error'>('form');
   const [discountCode, setDiscountCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
   const [swipeStart, setSwipeStart] = useState(0);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetId = useRef<string | null>(null);
 
   useEffect(() => {
     if (isAdmin || typeof window === 'undefined') return;
-    const dismissed = localStorage.getItem('og-newsletter-dismissed');
+    const dismissed = localStorage.getItem('7h-newsletter-dismissed');
     if (dismissed === 'true') return;
 
     const timer = setTimeout(() => {
@@ -30,9 +32,43 @@ export default function NewsletterPopup() {
     return () => clearTimeout(timer);
   }, [isAdmin]);
 
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const scriptId = 'cf-turnstile-script';
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+
+    const checkTurnstile = setInterval(() => {
+      if (window.turnstile && turnstileRef.current && !turnstileWidgetId.current) {
+        turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
+          sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA',
+          callback: (token: string) => setTurnstileToken(token),
+          'expired-callback': () => setTurnstileToken(null),
+        });
+        clearInterval(checkTurnstile);
+      }
+    }, 200);
+
+    return () => {
+      clearInterval(checkTurnstile);
+      if (turnstileWidgetId.current && window.turnstile) {
+        try { window.turnstile.remove(turnstileWidgetId.current); } catch {}
+        turnstileWidgetId.current = null;
+        setTurnstileToken(null);
+      }
+    };
+  }, [isVisible]);
+
   const handleDismiss = () => {
     setIsVisible(false);
-    localStorage.setItem('og-newsletter-dismissed', 'true');
+    localStorage.setItem('7h-newsletter-dismissed', 'true');
   };
 
   const handleSubmit = async () => {
@@ -44,16 +80,15 @@ export default function NewsletterPopup() {
     setLoading(true);
     setMessage('');
 
-    if (!password || password.length < 6) {
-      setMessage('Password must be at least 6 characters');
-      return;
-    }
-
     try {
       const res = await fetch('/api/newsletter/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), name: name.trim() || undefined, password }),
+        body: JSON.stringify({
+          email: email.trim(),
+          name: name.trim() || undefined,
+          turnstileToken,
+        }),
       });
 
       const data = await res.json();
@@ -62,7 +97,7 @@ export default function NewsletterPopup() {
         setDiscountCode(data.discountCode);
         setMessage(data.message);
         setStep('success');
-        localStorage.setItem('og-newsletter-dismissed', 'true');
+        localStorage.setItem('7h-newsletter-dismissed', 'true');
       } else {
         setMessage(data.error || 'Something went wrong. Please try again.');
         setStep('error');
@@ -144,22 +179,15 @@ export default function NewsletterPopup() {
                         onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                       />
                     </div>
-                    <div>
-                      <input
-                        type="password"
-                        placeholder="Create a password (min 6 characters)"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-sm text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none transition-all"
-                        onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                      />
-                    </div>
+
+                    <div ref={turnstileRef} className="cf-turnstile-container flex justify-center" />
+
                     {message && (
                       <p className="text-xs text-rose-500">{message}</p>
                     )}
                     <button
                       onClick={handleSubmit}
-                      disabled={loading || !email}
+                      disabled={loading || !email || !turnstileToken}
                       className="w-full py-3 bg-[#1A1A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#333] transition-all disabled:opacity-50"
                     >
                       {loading ? 'Subscribing...' : 'Get 10% OFF'}
@@ -205,7 +233,7 @@ export default function NewsletterPopup() {
                   <h3 className="text-lg font-bold text-[#1A1A1A] mb-1">Oops!</h3>
                   <p className="text-sm text-[#6B7280] mb-5">{message}</p>
                   <button
-                    onClick={() => { setStep('form'); setMessage(''); }}
+                    onClick={() => { setStep('form'); setMessage(''); setTurnstileToken(null); }}
                     className="w-full py-3 bg-[#1A1A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#333] transition-all"
                   >
                     Try Again

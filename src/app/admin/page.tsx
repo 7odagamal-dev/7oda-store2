@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { adminFetch } from '@/lib/admin-fetch'
+import { RequireRole } from '@/lib/use-admin-session'
 
 interface MonthlyData {
   month: string; revenue: number; count: number
@@ -71,42 +72,50 @@ export default function AdminDashboard() {
           <p className="text-secondary text-[var(--text-xs)] uppercase tracking-wider mb-[var(--space-xs)]">Pending</p>
           <p className="text-[var(--text-3xl)] font-bold text-amber-500">{stats.pendingOrders}</p>
         </div>
-        <div className="bg-card rounded-[var(--radius-xl)] p-[var(--space-lg)] border border-border shadow-sm">
-          <p className="text-secondary text-[var(--text-xs)] uppercase tracking-wider mb-[var(--space-xs)]">Revenue</p>
-          <p className="text-[var(--text-3xl)] font-bold text-accent">{stats.totalRevenue.toLocaleString()} <span className="text-[var(--text-sm)] font-medium">EGP</span></p>
-        </div>
+        <RequireRole allowed={['superadmin', 'admin']} fallback={
+          <div className="bg-card rounded-[var(--radius-xl)] p-[var(--space-lg)] border border-border shadow-sm">
+            <p className="text-secondary text-[var(--text-xs)] uppercase tracking-wider mb-[var(--space-xs)]">Revenue</p>
+            <p className="text-[var(--text-3xl)] font-bold text-secondary">— EGP</p>
+          </div>
+        }>
+          <div className="bg-card rounded-[var(--radius-xl)] p-[var(--space-lg)] border border-border shadow-sm">
+            <p className="text-secondary text-[var(--text-xs)] uppercase tracking-wider mb-[var(--space-xs)]">Revenue</p>
+            <p className="text-[var(--text-3xl)] font-bold text-accent">{stats.totalRevenue.toLocaleString()} <span className="text-[var(--text-sm)] font-medium">EGP</span></p>
+          </div>
+        </RequireRole>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-[var(--space-lg)]">
-        <div className="lg:col-span-2 bg-card rounded-[var(--radius-xl)] p-[var(--space-lg)] border border-border shadow-sm">
-          <div className="flex justify-between items-center mb-[var(--space-lg)]">
-            <h3 className="text-[var(--text-lg)] font-[family-name:var(--font-playfair)] text-foreground">Monthly Overview</h3>
-            <div className="flex gap-1">
-              <button onClick={() => setChartView('revenue')}
-                className={`px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] transition-all ${chartView === 'revenue' ? 'bg-accent text-white' : 'bg-card-hover text-secondary hover:bg-border'}`}>
-                Revenue
-              </button>
-              <button onClick={() => setChartView('orders')}
-                className={`px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] transition-all ${chartView === 'orders' ? 'bg-accent text-white' : 'bg-card-hover text-secondary hover:bg-border'}`}>
-                Orders
-              </button>
+      <RequireRole allowed={['superadmin', 'admin']}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-[var(--space-lg)]">
+          <div className="lg:col-span-2 bg-card rounded-[var(--radius-xl)] p-[var(--space-lg)] border border-border shadow-sm">
+            <div className="flex justify-between items-center mb-[var(--space-lg)]">
+              <h3 className="text-[var(--text-lg)] font-[family-name:var(--font-playfair)] text-foreground">Monthly Overview</h3>
+              <div className="flex gap-1">
+                <button onClick={() => setChartView('revenue')}
+                  className={`px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] transition-all ${chartView === 'revenue' ? 'bg-accent text-white' : 'bg-card-hover text-secondary hover:bg-border'}`}>
+                  Revenue
+                </button>
+                <button onClick={() => setChartView('orders')}
+                  className={`px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] transition-all ${chartView === 'orders' ? 'bg-accent text-white' : 'bg-card-hover text-secondary hover:bg-border'}`}>
+                  Orders
+                </button>
+              </div>
+            </div>
+            <div className="flex items-end gap-[var(--space-sm)] h-48">
+              {stats.monthly.map((m) => (
+                <div key={m.month} className="flex-1 flex flex-col items-center gap-[var(--space-sm)] h-full justify-end">
+                  <span className="text-[var(--text-xs)] text-secondary font-medium">
+                    {chartView === 'revenue' ? `${(m.revenue / 1000).toFixed(0)}k` : m.count}
+                  </span>
+                  <div
+                    className="w-full rounded-[var(--radius-md)] bg-gradient-to-t from-accent to-accent/60 transition-all duration-500 hover:opacity-80 cursor-pointer"
+                    style={{ height: `${Math.max((chartView === 'revenue' ? m.revenue / maxRevenue : m.count / maxCount) * 100, 4)}%` }}
+                  />
+                  <span className="text-[var(--text-xs)] text-secondary mt-[var(--space-xs)]">{m.month}</span>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="flex items-end gap-[var(--space-sm)] h-48">
-            {stats.monthly.map((m) => (
-              <div key={m.month} className="flex-1 flex flex-col items-center gap-[var(--space-sm)] h-full justify-end">
-                <span className="text-[var(--text-xs)] text-secondary font-medium">
-                  {chartView === 'revenue' ? `${(m.revenue / 1000).toFixed(0)}k` : m.count}
-                </span>
-                <div
-                  className="w-full rounded-[var(--radius-md)] bg-gradient-to-t from-accent to-accent/60 transition-all duration-500 hover:opacity-80 cursor-pointer"
-                  style={{ height: `${Math.max((chartView === 'revenue' ? m.revenue / maxRevenue : m.count / maxCount) * 100, 4)}%` }}
-                />
-                <span className="text-[var(--text-xs)] text-secondary mt-[var(--space-xs)]">{m.month}</span>
-              </div>
-            ))}
-          </div>
-        </div>
 
         <div className="bg-card rounded-[var(--radius-xl)] p-[var(--space-lg)] border border-border shadow-sm">
           <h3 className="text-[var(--text-lg)] font-[family-name:var(--font-playfair)] text-foreground mb-[var(--space-md)]">Top Products</h3>
@@ -127,6 +136,7 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+      </RequireRole>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-[var(--space-lg)]">
         <div className="bg-card rounded-[var(--radius-xl)] p-[var(--space-lg)] border border-border shadow-sm">

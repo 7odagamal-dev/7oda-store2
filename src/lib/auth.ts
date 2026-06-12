@@ -114,7 +114,7 @@ export async function warmupSchema(): Promise<void> {
 }
 
 export async function getAdminSession(req: NextRequest): Promise<AdminSession> {
-  const token = req.cookies.get('og-admin-auth')?.value;
+  const token = req.cookies.get('7h-admin-auth')?.value;
   if (!token) return { valid: false, storeId: null, role: null, userId: null };
 
   const q = buildQuery('admin_sessions', 'store_id,expires_at,user_id,user_role', { token });
@@ -192,7 +192,7 @@ export async function createSession(params: {
   }
 
   const response = NR.json({ success: true });
-  response.cookies.set('og-admin-auth', token, {
+  response.cookies.set('7h-admin-auth', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',

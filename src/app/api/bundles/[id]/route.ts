@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getStoreContext } from '@/lib/store-context';
+import type { Product } from '@/lib/supabase';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const productIds: string[] = bundle.products || [];
-    let products: Record<string, unknown>[] = [];
+    let products: Product[] = [];
     if (productIds.length > 0) {
       const { data: productRows } = await supabaseAdmin
         .from('products')
@@ -32,8 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const productImages: Record<string, string> = {};
     for (const p of products) {
-      const row = p as { id: string; main_image: string | null };
-      if (row.main_image) productImages[row.id] = row.main_image;
+      if (p.main_image) productImages[p.id] = p.main_image;
     }
 
     const enriched = {

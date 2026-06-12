@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 
 function makeReq(cookieToken?: string): NextRequest {
   const headers = new Headers();
-  if (cookieToken) headers.set('Cookie', `og-admin-auth=${cookieToken}`);
+  if (cookieToken) headers.set('Cookie', `7h-admin-auth=${cookieToken}`);
   return new NextRequest('http://localhost/api/test', { headers });
 }
 

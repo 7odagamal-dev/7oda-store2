@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit } from '@/lib/rate-limit';
 import crypto from 'crypto';
+import { log, newCorrelationId } from '@/lib/logger';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 
 export async function POST(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
+
   const ip =
     req.headers.get('x-real-ip') ||
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -44,13 +48,17 @@ export async function POST(req: NextRequest) {
       .upload(fileName, buffer, { contentType: file.type, upsert: false });
 
     if (error) {
+      log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/upload/review', method: 'POST', statusCode: 500, level: 'error', message: 'Review image storage error', error: error.message });
       console.error('Review image upload error:', error.message);
       return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
     }
 
     const { data: urlData } = supabaseAdmin.storage.from('review-images').getPublicUrl(fileName);
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/upload/review', method: 'POST', statusCode: 200, level: 'info', message: 'Review image uploaded', metadata: { fileName, fileSize: file.size } });
     return NextResponse.json({ url: urlData.publicUrl });
   } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/upload/review', method: 'POST', statusCode: 500, level: 'error', message: 'Review image upload failed', error: msg });
     console.error('Upload review image error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

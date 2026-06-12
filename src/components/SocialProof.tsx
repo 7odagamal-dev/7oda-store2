@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 const RECENT_MESSAGES = [
   'Someone just purchased this item',
-  'Almost sold out — popular today',
+  'Almost sold out â€” popular today',
   'Trending right now in Egypt',
 ];
 
@@ -24,13 +24,13 @@ export default function SocialProof({ productId, todaySales = 0 }: SocialProofPr
 
     // Show after 6 seconds
     const showTimer = setTimeout(() => {
-      const hasDismissed = sessionStorage.getItem(`og-social-${productId}`);
+      const hasDismissed = sessionStorage.getItem(`7h-social-${productId}`);
       if (hasDismissed) return;
 
       // Pick a message based on sales data
       const msgs: string[] = [];
       if (todaySales > 0) {
-        msgs.push(`🔥 ${todaySales} purchased today`);
+        msgs.push(`ðŸ”¥ ${todaySales} purchased today`);
       }
       msgs.push(...RECENT_MESSAGES);
 
@@ -42,7 +42,7 @@ export default function SocialProof({ productId, todaySales = 0 }: SocialProofPr
     // Auto-dismiss after 5 seconds
     const dismissTimer = setTimeout(() => {
       setShow(false);
-      if (productId) sessionStorage.setItem(`og-social-${productId}`, 'true');
+      if (productId) sessionStorage.setItem(`7h-social-${productId}`, 'true');
     }, 11000);
 
     return () => {

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 
@@ -51,7 +51,7 @@ export default function PWAInstallPrompt() {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[#1A1A1A] dark:text-[#E5E7EB]">Install OG Old Gold</p>
+              <p className="text-sm font-semibold text-[#1A1A1A] dark:text-[#E5E7EB]">Install 7H </p>
               <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">Add to your home screen for the best experience</p>
             </div>
             <button onClick={() => setShowInstall(false)} className="text-[#9CA3AF] hover:text-[#1A1A1A] dark:hover:text-[#E5E7EB] transition-colors">

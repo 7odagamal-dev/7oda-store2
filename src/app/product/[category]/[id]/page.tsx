@@ -118,7 +118,7 @@ export default function ProductDetails({ params }: { params: Promise<{ category:
     setIsAdding(true);
     for (const [size, qty] of Object.entries(sizeQty)) {
       if (qty > 0) {
-        addItem(product, size, qty, flashDiscountedPrice);
+        addItem(product, size, qty);
       }
     }
     router.push('/cart');

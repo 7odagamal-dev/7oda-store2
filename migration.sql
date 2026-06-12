@@ -1,5 +1,5 @@
--- ============================================================
--- OG Old Gold — Full Schema Migration
+﻿-- ============================================================
+-- 7H  — Full Schema Migration
 -- Run this ENTIRE file in Supabase SQL Editor (safe to rerun)
 -- ============================================================
 
@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS orders (
   display_id TEXT,
   user_id UUID,
   customer_name TEXT NOT NULL,
+  customer_email TEXT,
   phone TEXT NOT NULL,
   governorate TEXT NOT NULL,
   city TEXT NOT NULL,
@@ -96,6 +97,7 @@ CREATE TABLE IF NOT EXISTS orders (
   total INTEGER NOT NULL DEFAULT 0,
   items JSONB DEFAULT '[]',
   paymob_txn_id TEXT,
+  coupon_id UUID REFERENCES coupons(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -117,10 +119,18 @@ CREATE TABLE IF NOT EXISTS coupons (
   used_count INTEGER DEFAULT 0,
   expires_at TIMESTAMPTZ,
   is_active BOOLEAN DEFAULT true,
+  coupon_type TEXT NOT NULL DEFAULT 'admin' CHECK (coupon_type IN ('newsletter', 'admin', 'public', 'targeted')),
+  linked_email TEXT,
+  subscriber_id UUID REFERENCES subscribers(id) ON DELETE SET NULL,
+  used_by_order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+  used_at TIMESTAMPTZ,
+  used_by_ip TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(store_id, code)
 );
 CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(store_id, code);
+CREATE INDEX IF NOT EXISTS idx_coupons_linked_email ON coupons(linked_email);
+CREATE INDEX IF NOT EXISTS idx_coupons_subscriber_id ON coupons(subscriber_id);
 
 -- Shipping Rates
 CREATE TABLE IF NOT EXISTS shipping_rates (
@@ -238,6 +248,9 @@ CREATE TABLE IF NOT EXISTS subscribers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id UUID REFERENCES stores(id) ON DELETE CASCADE NOT NULL,
   email TEXT NOT NULL,
+  name TEXT,
+  discount_code TEXT,
+  discount_used BOOLEAN DEFAULT false,
   is_active BOOLEAN DEFAULT true,
   subscribed_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(store_id, email)
@@ -282,6 +295,20 @@ CREATE INDEX IF NOT EXISTS idx_bundles_store ON bundles(store_id);
 ALTER TABLE bundles ADD COLUMN IF NOT EXISTS image_source TEXT DEFAULT 'custom';
 ALTER TABLE bundles ADD COLUMN IF NOT EXISTS image_layout TEXT DEFAULT 'side-by-side';
 ALTER TABLE bundles ADD COLUMN IF NOT EXISTS image_data JSONB DEFAULT '{}'::jsonb;
+
+ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS discount_code TEXT;
+ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS discount_used BOOLEAN DEFAULT false;
+
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS coupon_type TEXT NOT NULL DEFAULT 'admin';
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS linked_email TEXT;
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS subscriber_id UUID REFERENCES subscribers(id) ON DELETE SET NULL;
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS used_by_order_id UUID REFERENCES orders(id) ON DELETE SET NULL;
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS used_at TIMESTAMPTZ;
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS used_by_ip TEXT;
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_id UUID REFERENCES coupons(id) ON DELETE SET NULL;
 
 -- ============================================================
 -- 3. STORED PROCEDURES / RPCs
@@ -439,7 +466,7 @@ END $$;
 -- 5. SEED DATA
 -- ============================================================
 INSERT INTO stores (id, name, slug, domain, is_active)
-VALUES ('00000000-0000-0000-0000-000000000001', 'OG Old Gold', 'og-old-gold', NULL, true)
+VALUES ('00000000-0000-0000-0000-000000000001', '7H ', '7H-old-gold', NULL, true)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO shipping_rates (governorate, cost) VALUES

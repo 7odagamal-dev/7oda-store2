@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -17,10 +17,10 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-4">
             <Link href="/" className="inline-flex flex-col items-start">
               <span className="text-[var(--text-3xl)] font-bold tracking-[0.3em] text-foreground font-[family-name:var(--font-playfair)]">
-                OG
+                7H
               </span>
               <span className="text-[var(--text-xs)] tracking-[0.25em] text-secondary uppercase mt-1">
-                Old Gold
+                
               </span>
             </Link>
             <p className="mt-[var(--space-lg)] text-[var(--text-sm)] text-secondary leading-relaxed max-w-xs">
@@ -29,7 +29,7 @@ export default function Footer() {
             {/* Social Links */}
             <div className="flex gap-[var(--space-md)] mt-[var(--space-lg)]">
               <a
-                href="https://www.instagram.com/og.oldgold?igsh=bzlvMDhnejFzbWMy&utm_source=qr"
+                href="https://www.instagram.com/7H.7hstore?igsh=bzlvMDhnejFzbWMy&utm_source=qr"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
@@ -40,7 +40,7 @@ export default function Footer() {
                 </svg>
               </a>
               <a
-                href="https://www.tiktok.com/@og.oldgold?_r=1&_t=ZS-96S9Xwegtxo"
+                href="https://www.tiktok.com/@7H.7hstore?_r=1&_t=ZS-96S9Xwegtxo"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="TikTok"
@@ -108,10 +108,10 @@ export default function Footer() {
             </h4>
             <p className="text-[var(--text-sm)] text-secondary">Alexandria, Egypt</p>
             <a
-              href="mailto:contact@oldgold.life"
+              href="mailto:contact@7h-store.life"
               className="text-[var(--text-sm)] text-accent hover:text-accent-deep transition-colors mt-[var(--space-sm)] inline-block py-[var(--space-xs)]"
             >
-              contact@oldgold.life
+              contact@7h-store.life
             </a>
           </div>
         </div>
@@ -119,7 +119,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="pt-[var(--space-xl)] border-t border-border-light text-center">
           <p className="text-[var(--text-xs)] text-secondary tracking-wider">
-            © 2026 OG — Old Gold. All rights reserved.
+            © 2026 7H — . All rights reserved.
           </p>
         </div>
       </div>

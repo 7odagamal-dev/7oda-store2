@@ -1,7 +1,7 @@
-import { Metadata } from 'next';
+﻿import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Cart - OG Store',
+  title: 'Cart - 7H Store',
   description: 'Review your cart and proceed to checkout.',
 };
 

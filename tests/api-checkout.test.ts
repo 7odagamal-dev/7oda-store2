@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const { mockAnonFrom } = vi.hoisted(() => ({ mockAnonFrom: vi.fn() }));
+vi.mock('@/lib/supabase-anon', () => ({ supabaseAnon: { from: mockAnonFrom } }));
+
 vi.mock('@/lib/rate-limit', () => ({ checkRateLimit: vi.fn().mockResolvedValue(true) }));
 vi.mock('@/lib/store-context', () => ({ getStoreContext: vi.fn().mockResolvedValue({ storeId: 'store-1' }) }));
 vi.mock('@/lib/supabase-server', () => ({
@@ -9,6 +12,12 @@ vi.mock('@/lib/supabase-server', () => ({
   }),
 }));
 vi.mock('@/lib/shipping', () => ({ calculateShippingCost: vi.fn().mockReturnValue(100) }));
+
+const idempotencyStore = new Map<string, string>();
+vi.mock('@/lib/idempotency', () => ({
+  getIdempotencyResult: vi.fn(async (key: string) => idempotencyStore.get(key) || null),
+  setIdempotencyResult: vi.fn((key: string, orderId: string) => { idempotencyStore.set(key, orderId); }),
+}));
 
 vi.mock('@/lib/supabase-admin', () => {
   function cr(data: unknown) {
@@ -94,7 +103,7 @@ beforeEach(() => {
     });
   };
 
-  mockFrom.mockImplementation((table: string) => {
+  const mockFromFn = (table: string) => {
     const resp = mockResponses[table as keyof MockResponses];
     const data = resp !== undefined ? resp : null;
     return {
@@ -106,7 +115,9 @@ beforeEach(() => {
       })),
       delete: vi.fn(() => cr(null)),
     };
-  });
+  };
+  mockFrom.mockImplementation(mockFromFn);
+  mockAnonFrom.mockImplementation(mockFromFn);
 });
 
 describe('POST /api/checkout — idempotency', () => {
@@ -138,12 +149,12 @@ describe('POST /api/checkout — idempotency', () => {
   it('stores idempotency key after successful new order', async () => {
     mockResponses = {
       products: [{ id: 'prod-1', name: 'Test', price: 500, main_image: null, stock: 10, reserved_stock: 0 }],
-      orders: { id: 'order-42' },
     };
 
     const res = await POST(makeReq({ ...validOrderBody, idempotency_key: 'fresh-key' }));
     expect(res.status).toBe(201);
-    expect(getIdempotencyResult('fresh-key')).toBe('order-42');
+    // Insert defaults to 'order-id' when mockResponses.orders is not set
+    expect(await getIdempotencyResult('fresh-key')).toBe('order-id');
   });
 });
 

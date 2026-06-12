@@ -53,7 +53,7 @@ export default function BundleDetailPage({ params }: { params: Promise<{ id: str
   }, [id]);
 
   const products = bundle?.products_data || [];
-  const originalTotal = products.reduce((sum, p) => sum + p.price, 0);
+  const originalTotal = products.reduce((sum, p) => sum + Number(p.price || 0), 0);
   let discountedTotal = originalTotal;
   if (bundle && originalTotal > 0) {
     if (bundle.discount_type === 'percentage') {
@@ -68,23 +68,16 @@ export default function BundleDetailPage({ params }: { params: Promise<{ id: str
     if (!bundle) return;
     setAdding(true);
     for (const product of products) {
-      const sizes = product.sizes || [];
+      const sizes = Array.isArray(product.sizes) ? product.sizes : [];
       if (sizes.length > 0) {
-        let unitPrice = product.price;
-        if (bundle.discount_type === 'percentage') {
-          unitPrice = Math.round(product.price * (1 - bundle.discount_value / 100));
-        } else if (originalTotal > 0) {
-          const share = Math.round(product.price * bundle.discount_value / originalTotal);
-          unitPrice = Math.max(0, product.price - share);
-        }
-        addItem(product, sizes[0], 1, unitPrice);
+        addItem(product, sizes[0], 1);
       }
     }
     router.push('/cart');
   };
 
   const handleAddSingle = (product: Product) => {
-    const sizes = product.sizes || [];
+    const sizes = Array.isArray(product.sizes) ? product.sizes : [];
     if (sizes.length > 0) {
       addItem(product, sizes[0], 1);
     }
@@ -184,7 +177,7 @@ export default function BundleDetailPage({ params }: { params: Promise<{ id: str
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product, idx) => {
-            const sizes = product.sizes || [];
+            const sizes = Array.isArray(product.sizes) ? product.sizes : [];
             return (
               <motion.div
                 key={product.id}
@@ -193,19 +186,29 @@ export default function BundleDetailPage({ params }: { params: Promise<{ id: str
                 transition={{ duration: 0.4, delay: idx * 0.05 }}
                 className="bg-card rounded-[var(--radius-xl)] border border-border overflow-hidden hover:shadow-md transition-all"
               >
-                <Link href={`/product/${encodeURIComponent(product.category || 'uncategorized')}/${product.id}`}>
+                {product.id ? (
+                  <Link href={`/product/${encodeURIComponent(product.category || 'uncategorized')}/${product.id}`}>
+                    <div className="w-full aspect-square relative bg-[#F8F9FB]">
+                      <Image src={product.main_image || '/placeholder.svg'} alt={product.name} fill className="object-cover" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" />
+                    </div>
+                  </Link>
+                ) : (
                   <div className="w-full aspect-square relative bg-[#F8F9FB]">
                     <Image src={product.main_image || '/placeholder.svg'} alt={product.name} fill className="object-cover" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" />
                   </div>
-                </Link>
+                )}
                 <div className="p-[var(--space-lg)]">
-                  <Link href={`/product/${encodeURIComponent(product.category || 'uncategorized')}/${product.id}`}>
-                    <h3 className="font-bold text-[var(--text-sm)] text-[#1A1A1A] hover:text-[#8BA4B8] transition-colors mb-1">{product.name}</h3>
-                  </Link>
+                  {product.id ? (
+                    <Link href={`/product/${encodeURIComponent(product.category || 'uncategorized')}/${product.id}`}>
+                      <h3 className="font-bold text-[var(--text-xs)] text-[#1A1A1A] hover:text-[#8BA4B8] transition-colors mb-1">{product.name}</h3>
+                    </Link>
+                  ) : (
+                    <h3 className="font-bold text-[var(--text-xs)] text-[#1A1A1A] transition-colors mb-1">{product.name}</h3>
+                  )}
                   <p className="text-[var(--text-xs)] text-[#6B7280] mb-3">{product.category}</p>
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-sm font-bold text-[#1A1A1A]">EGP {product.price.toFixed(2)}</span>
+                      <span className="text-sm font-bold text-[#1A1A1A]">EGP {Number(product.price || 0).toFixed(2)}</span>
                       {savings > 0 && (
                         <span className="text-xs text-rose-500 ml-2">
                           {bundle.discount_type === 'percentage' ? `${bundle.discount_value}% off` : 'Save'}
@@ -222,7 +225,7 @@ export default function BundleDetailPage({ params }: { params: Promise<{ id: str
                   </div>
                   {savings > 0 && bundle.discount_type === 'percentage' && (
                     <p className="text-[10px] text-rose-500 mt-2">
-                      EGP {Math.round(product.price * (1 - bundle.discount_value / 100)).toFixed(2)} with bundle
+                      EGP {Math.round(Number(product.price || 0) * (1 - bundle.discount_value / 100)).toFixed(2)} with bundle
                     </p>
                   )}
                 </div>

@@ -1,4 +1,4 @@
-import { Metadata } from 'next';
+﻿import { Metadata } from 'next';
 import { JsonLd } from '@/components/JsonLd';
 
 type MetadataProps = {
@@ -23,8 +23,8 @@ export async function generateMetadata(
       const json = await res.json();
       if (json.product) {
         const p = json.product;
-        const title = `${p.name} - OG Old Gold`;
-        const description = p.description || `Shop ${p.name} at OG Old Gold. Premium quality.`;
+        const title = `${p.name} - 7H `;
+        const description = p.description || `Shop ${p.name} at 7H . Premium quality.`;
         const image = absoluteUrl(baseUrl, p.main_image || '/images/logo.jpeg');
 
         return {
@@ -34,7 +34,7 @@ export async function generateMetadata(
             title,
             description,
             url: canonicalUrl,
-            siteName: 'OG Old Gold',
+            siteName: '7H ',
             images: [{ url: image, width: 1200, height: 630, alt: p.name }],
             locale: 'en_US',
             type: 'website',
@@ -52,10 +52,10 @@ export async function generateMetadata(
   } catch {}
 
   return {
-    title: 'Product - OG Old Gold',
-    description: 'View product details on OG Old Gold',
+    title: 'Product - 7H ',
+    description: 'View product details on 7H ',
     openGraph: {
-      title: 'OG Old Gold',
+      title: '7H ',
       description: 'Premium fashion store',
       images: [{ url: absoluteUrl(baseUrl, '/images/logo.jpeg'), width: 1200, height: 630 }],
     },
@@ -85,7 +85,7 @@ export default async function ProductLayout({
           "@context": "https://schema.org",
           "@type": "Product",
           name: p.name,
-          description: p.description || `${p.name} from OG Old Gold`,
+          description: p.description || `${p.name} from 7H `,
           image: p.main_image || '/images/logo.jpeg',
           sku: p.slug,
           offers: {

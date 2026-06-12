@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/lib/supabase-admin';
+﻿import { supabaseAdmin } from '@/lib/supabase-admin';
 import { DEFAULT_STORE_ID } from '@/lib/store-context';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const post = await getPost(slug);
   if (!post) return { title: 'Post Not Found' };
   return {
-    title: `${post.title} | OG Old Gold Blog`,
+    title: `${post.title} | 7H  Blog`,
     description: post.excerpt ?? post.title,
     openGraph: post.cover_image ? { images: [{ url: post.cover_image }] } : undefined,
   };
@@ -92,6 +92,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         {post.cover_image && (
           <div className="aspect-[16/9] rounded-2xl overflow-hidden bg-[#F3F5F8] mb-10">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={post.cover_image}
               alt={post.title}

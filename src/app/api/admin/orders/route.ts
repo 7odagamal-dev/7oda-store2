@@ -5,10 +5,15 @@ import { isValidOrderStatus, assertValidOrderTransition } from '@/lib/order-stat
 import { filterByStore } from '@/lib/db';
 import { csrfGuard, safeJson } from '@/lib/csrf';
 import { checkRateLimit } from '@/lib/rate-limit';
-
+import { log, newCorrelationId } from '@/lib/logger';
+import { requireRole } from '@/lib/admin-guards';
 export async function GET(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
+  const roleResp = await requireRole(req, ['superadmin', 'admin']);
+  if (roleResp) return roleResp;
+
   const session = await getAdminSession(req);
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
@@ -39,6 +44,7 @@ export async function GET(req: NextRequest) {
       .range(from, to);
 
     if (error) throw error;
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/orders', method: 'GET', statusCode: 200, level: 'info', message: 'Orders fetched', metadata: { total: count ?? 0, page, limit } });
     return NextResponse.json({
       data: data || [],
       total: count ?? 0,
@@ -48,16 +54,21 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/orders', method: 'GET', statusCode: 500, level: 'error', message: 'Orders fetch failed', error: message });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function PUT(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
   const csrfResp = csrfGuard(req);
   if (csrfResp) return csrfResp;
 
+  const roleResp = await requireRole(req, ['superadmin', 'admin']);
+  if (roleResp) return roleResp;
+
   const session = await getAdminSession(req);
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
   const rlAllowed = await checkRateLimit(ip, 'admin_update_order', 30, 60000);
@@ -97,17 +108,8 @@ export async function PUT(req: NextRequest) {
   const { data, error } = await updateQuery.select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // ── Coupon lifecycle: increment on confirm, decrement on cancel ──
-  if (current.status === 'pending' && status && status !== 'cancelled') {
-    const { data: couponOrder } = await supabaseAdmin
-      .from('orders')
-      .select('coupon_id')
-      .eq('id', id)
-      .single();
-    if (couponOrder?.coupon_id) {
-      await supabaseAdmin.rpc('atomic_increment_coupon', { p_coupon_id: couponOrder.coupon_id });
-    }
-  }
+  // ── Coupon lifecycle: decrement on cancel ──
+  // Coupon was already incremented atomically at checkout (checkout/route.ts).
   if (['confirmed', 'pending'].includes(current.status) && status === 'cancelled') {
     const { data: couponOrder } = await supabaseAdmin
       .from('orders')
@@ -124,7 +126,7 @@ export async function PUT(req: NextRequest) {
       .map(i => ({ product_id: i.product_id, quantity: i.quantity }));
     const { error: releaseErr } = await supabaseAdmin.rpc('release_order_stock', {
       order_id: id,
-      items: JSON.stringify(items),
+      items: items,
     });
     if (releaseErr) {
       console.error(`[Orders] Failed to release stock for cancelled order ${id}:`, releaseErr);
@@ -137,7 +139,7 @@ export async function PUT(req: NextRequest) {
       .map(i => ({ product_id: i.product_id, quantity: i.quantity }));
     const { error: commitErr } = await supabaseAdmin.rpc('commit_order_stock', {
       order_id: id,
-      items: JSON.stringify(items),
+      items: items,
     });
     if (commitErr) {
       console.error(`[Orders] Failed to commit stock for confirmed order ${id}:`, commitErr);
@@ -145,15 +147,20 @@ export async function PUT(req: NextRequest) {
     }
   }
 
+  log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/orders', method: 'PUT', statusCode: 200, level: 'info', message: 'Order updated', metadata: { orderId: data?.id, newStatus: status || delivery_status } });
   return safeJson(data);
 }
 
 export async function DELETE(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
   const csrfResp = csrfGuard(req);
   if (csrfResp) return csrfResp;
 
+  const roleResp = await requireRole(req, ['superadmin', 'admin']);
+  if (roleResp) return roleResp;
+
   const session = await getAdminSession(req);
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
   const rlAllowed = await checkRateLimit(ip, 'admin_delete_order', 15, 60000);
@@ -181,7 +188,7 @@ export async function DELETE(req: NextRequest) {
         .map(i => ({ product_id: i.product_id, quantity: i.quantity }));
       const { error: releaseErr } = await supabaseAdmin.rpc('release_order_stock', {
         order_id: id,
-        items: JSON.stringify(items),
+        items: items,
       });
       if (releaseErr) {
         console.error(`[Orders] Failed to release stock before delete for ${id}:`, releaseErr);
@@ -195,12 +202,15 @@ export async function DELETE(req: NextRequest) {
 
     if (error) throw error;
 
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/orders', method: 'DELETE', statusCode: 200, level: 'info', message: 'Order deleted', metadata: { orderId: id } });
     return safeJson({ 
       success: true, 
       message: 'Order deleted successfully' 
     }, { status: 200 });
 
   } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/orders', method: 'DELETE', statusCode: 500, level: 'error', message: 'Order deletion failed', error: msg });
     console.error('Error deleting order:', err);
     return NextResponse.json({ 
       success: false, 

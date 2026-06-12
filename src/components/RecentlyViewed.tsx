@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import ProductCard from '@/components/ProductCard';
 import type { Product } from '@/lib/supabase';
 
-const STORAGE_KEY = 'og-recently-viewed';
+const STORAGE_KEY = '7h-recently-viewed';
 const MAX_ITEMS = 8;
 
 export function trackRecentlyViewed(product: Product) {

@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminFetch } from '@/lib/admin-fetch';
+import { AdminPagination } from '../components/AdminPagination';
 
 interface Product {
   id: string;
@@ -30,6 +31,9 @@ const emptyForm = {
 export default function FlashSalesPage() {
   const [sales, setSales] = useState<FlashSale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -40,12 +44,14 @@ export default function FlashSalesPage() {
     setLoading(true);
     try {
       const [salesRes, productsRes] = await Promise.all([
-        adminFetch('/api/admin/flash-sales'),
+        adminFetch('/api/admin/flash-sales?page=' + page + '&limit=20'),
         adminFetch('/api/admin/products'),
       ]);
       const salesData = await salesRes.json();
       const productsData = await productsRes.json();
       setSales(salesData.sales ?? []);
+      setTotal(salesData.total ?? 0);
+      setTotalPages(salesData.totalPages ?? 1);
       setProducts(productsData.data ?? []);
     } catch {
       setSales([]);
@@ -53,7 +59,7 @@ export default function FlashSalesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => { fetchSales(); }, [fetchSales]);
 
@@ -226,6 +232,8 @@ export default function FlashSalesPage() {
           </div>
         </div>
       )}
+
+      <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
       {endedSales.length > 0 && (
         <div>

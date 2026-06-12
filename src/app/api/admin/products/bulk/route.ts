@@ -1,16 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getAdminSession } from '@/lib/auth'
+import { requireRole } from '@/lib/admin-guards'
 import { csrfGuard, safeJson } from '@/lib/csrf'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { log, newCorrelationId } from '@/lib/logger'
 import * as XLSX from 'xlsx'
 
 export async function POST(request: NextRequest) {
+  const correlationId = newCorrelationId()
+  const startMs = Date.now()
   try {
     const csrfResp = csrfGuard(request)
     if (csrfResp) return csrfResp
 
+    const roleResp = await requireRole(request, ['superadmin'])
+    if (roleResp) return roleResp
     const session = await getAdminSession(request)
-    if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown'
+    const allowed = await checkRateLimit(ip, 'admin_bulk', 5, 60000)
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
+    }
 
     const form = await request.formData()
     const file = form.get('file') as File
@@ -72,8 +83,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products/bulk', method: 'POST', statusCode: 200, level: 'info', message: 'Bulk upload completed', metadata: { successCount: results.success, errorCount: results.errors.length } })
     return safeJson(results)
   } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products/bulk', method: 'POST', statusCode: 500, level: 'error', message: 'Bulk upload failed', error: msg })
     console.error('Bulk upload error:', err)
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
   }

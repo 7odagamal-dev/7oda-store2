@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getAdminSession } from '@/lib/auth'
+import { requireRole } from '@/lib/admin-guards'
 import type { Order } from '@/lib/supabase'
 import * as XLSX from 'xlsx'
 
 export async function GET(request: NextRequest) {
   try {
+    const roleResp = await requireRole(request, ['superadmin', 'admin'])
+    if (roleResp) return roleResp
     const session = await getAdminSession(request)
-    if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { data: orders } = await supabaseAdmin
       .from('orders')

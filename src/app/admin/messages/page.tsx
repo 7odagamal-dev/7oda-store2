@@ -1,8 +1,10 @@
-'use client';
+﻿'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCallback } from 'react';
 import { useEffect, useState } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
+import { AdminPagination } from '../components/AdminPagination';
 
 interface Message {
   id: string;
@@ -15,24 +17,29 @@ interface Message {
 
 export default function AdminMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
-      const res = await adminFetch('/api/admin/messages');
+      const res = await adminFetch('/api/admin/messages?page=' + page + '&limit=20');
       if (!res.ok) { setMessages([]); return; }
       const data = await res.json();
-      setMessages(data || []);
+      setMessages(data.data ?? []);
+      setTotal(data.total ?? 0);
+      setTotalPages(data.totalPages ?? 1);
     } catch {
       setMessages([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
 
-  useEffect(() => { fetchMessages(); }, []);
+  useEffect(() => { fetchMessages(); }, [fetchMessages]);
 
   const updateMessageStatus = async (messageId: string, newStatus: string) => {
     try {
@@ -161,7 +168,7 @@ export default function AdminMessages() {
                     className={`px-3 py-1 text-xs font-semibold uppercase rounded-full transition-all ${
                       message.status === 'replied' ? 'bg-sky-100 text-sky-700' : 'bg-[#F3F5F8] text-[#6B7280] hover:bg-[#E5E7EB]'
                     }`}>Replied</button>
-                  <button onClick={() => { window.location.href = `mailto:${message.email}?subject=Reply - OG Store`; }}
+                  <button onClick={() => { window.location.href = `mailto:${message.email}?subject=Reply - 7H Store`; }}
                     className="px-3 py-1 text-xs font-semibold uppercase rounded-full bg-[#8BA4B8] text-white hover:bg-[#6B8BA0] transition-all ml-auto">
                     Reply via Email
                   </button>
@@ -171,6 +178,7 @@ export default function AdminMessages() {
           </AnimatePresence>
         </div>
       )}
+      <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </motion.div>
   );
 }

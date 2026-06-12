@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
+import { AdminPagination } from '../components/AdminPagination';
 
 interface Review {
   id: string;
@@ -15,23 +16,28 @@ interface Review {
 
 export default function AdminReviews() {
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
-      const res = await adminFetch('/api/admin/reviews');
+      const res = await adminFetch('/api/admin/reviews?page=' + page + '&limit=20');
       if (!res.ok) { setReviews([]); return; }
       const data = await res.json();
-      setReviews(data || []);
+      setReviews(data.data ?? []);
+      setTotal(data.total ?? 0);
+      setTotalPages(data.totalPages ?? 1);
     } catch {
       setReviews([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
 
-  useEffect(() => { fetchReviews(); }, []);
+  useEffect(() => { fetchReviews(); }, [fetchReviews]);
 
   const deleteReview = async (id: string) => {
     if (!confirm('Delete this review permanently?')) return;
@@ -78,12 +84,12 @@ export default function AdminReviews() {
           <div className="flex items-center gap-2 text-sm text-[#6B7280]">
             <span className="text-2xl font-bold text-amber-500">{averageRating}</span>
             {renderStars(Math.round(averageRating))}
-            <span className="ml-1">({reviews.length} total)</span>
+            <span className="ml-1">({total} total)</span>
           </div>
         )}
       </div>
 
-      <input type="text" placeholder="Search by name, product, or comment..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+      <input type="text" placeholder="Search by name, product, or comment..." value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }}
         className="w-full px-4 py-3 bg-white border border-[#E5E7EB] rounded-xl text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none text-sm transition-all mb-6" />
 
       {loading ? (
@@ -128,6 +134,7 @@ export default function AdminReviews() {
           </AnimatePresence>
         </div>
       )}
+      <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </motion.div>
   );
 }

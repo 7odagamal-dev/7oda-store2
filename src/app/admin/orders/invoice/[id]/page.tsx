@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
@@ -47,7 +47,7 @@ export default function InvoicePage() {
       {/* Header */}
       <div className="flex justify-between items-start border-b-2 border-[#8BA4B8] pb-6 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-[#1A1A1A] font-[family-name:var(--font-playfair)]">OG Old Gold</h1>
+          <h1 className="text-3xl font-bold text-[#1A1A1A] font-[family-name:var(--font-playfair)]">7H </h1>
           <p className="text-[#6B7280] text-sm">Premium Luxury Fashion</p>
         </div>
         <div className="text-right">
@@ -125,7 +125,7 @@ export default function InvoicePage() {
 
       {/* Footer */}
       <div className="mt-12 pt-6 border-t border-[#E5E7EB] text-center text-xs text-[#9CA3AF]">
-        <p>OG Old Gold — Premium Luxury Fashion</p>
+        <p>7H  — Premium Luxury Fashion</p>
         <p>Thank you for your order!</p>
       </div>
 

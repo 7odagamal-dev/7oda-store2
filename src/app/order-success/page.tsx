@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { safeRemoveStorage, StorageService } from '@/lib/storage';
 
-const orderStorage = new StorageService('og-');
+const orderStorage = new StorageService('7h-');
 
 interface OrderData {
   id: string;
@@ -51,7 +51,7 @@ function OrderSuccessContent() {
           date: data.created_at,
         }
       }), {});
-      safeRemoveStorage('og-cart');
+      safeRemoveStorage('7h-cart');
     } catch {
       setError('Failed to load order');
     } finally {
@@ -80,7 +80,7 @@ function OrderSuccessContent() {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center">
         <div className="text-center">
-          <div className="text-5xl mb-4 opacity-30">✧</div>
+          <div className="text-5xl mb-4 opacity-30">âœ§</div>
           <h1 className="text-2xl font-[family-name:var(--font-playfair)] text-[#1A1A1A] mb-2">Order Not Found</h1>
           <p className="text-[#6B7280] mb-6">{error || 'We could not find this order.'}</p>
           <Link href="/" className="text-[#8BA4B8] underline underline-offset-4">Back to Home</Link>

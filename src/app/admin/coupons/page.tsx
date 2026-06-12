@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState, useCallback } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
+import { AdminPagination } from '../components/AdminPagination';
 
 interface Coupon {
   id: string;
@@ -14,6 +15,8 @@ interface Coupon {
   used_count: number;
   is_active: boolean;
   expires_at: string | null;
+  coupon_type: string;
+  linked_email: string | null;
   created_at: string;
 }
 
@@ -24,10 +27,15 @@ const defaultForm = {
   min_order: 0,
   max_uses: null as number | null,
   expires_at: '' as string,
+  coupon_type: 'admin' as string,
+  linked_email: '' as string,
 };
 
 export default function AdminCoupons() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultForm);
@@ -35,10 +43,15 @@ export default function AdminCoupons() {
 
   const fetchCoupons = useCallback(async () => {
     try {
-      const res = await adminFetch('/api/admin/coupons');
-      if (res.ok) setCoupons(await res.json());
+      const res = await adminFetch('/api/admin/coupons?page=' + page + '&limit=20');
+      if (res.ok) {
+        const data = await res.json();
+        setCoupons(data.data ?? []);
+        setTotal(data.total ?? 0);
+        setTotalPages(data.totalPages ?? 1);
+      }
     } catch {} finally { setLoading(false); }
-  }, []);
+  }, [page]);
 
   useEffect(() => { fetchCoupons(); }, [fetchCoupons]);
 
@@ -138,8 +151,25 @@ export default function AdminCoupons() {
               <div>
                 <label className="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1.5">Expires At</label>
                 <input type="date" value={form.expires_at} onChange={e => setForm({ ...form, expires_at: e.target.value })}
-                  className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-[#1A1A1A] focus:border-[#8BA4B8] focus:outline-none text-sm" />
+                  className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-sm text-[#1A1A1A] focus:border-[#8BA4B8] focus:outline-none transition-all" />
               </div>
+              <div>
+                <label className="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1.5">Coupon Type</label>
+                <select value={form.coupon_type} onChange={e => setForm({ ...form, coupon_type: e.target.value, linked_email: e.target.value !== 'targeted' ? '' : form.linked_email })}
+                  className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-[#1A1A1A] focus:border-[#8BA4B8] focus:outline-none text-sm">
+                  <option value="admin">Admin (no email binding)</option>
+                  <option value="public">Public (no email binding)</option>
+                  <option value="targeted">Targeted (email bound)</option>
+                </select>
+              </div>
+              {form.coupon_type === 'targeted' && (
+                <div>
+                  <label className="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1.5">Linked Email</label>
+                  <input type="email" value={form.linked_email} onChange={e => setForm({ ...form, linked_email: e.target.value })}
+                    placeholder="user@example.com" required
+                    className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-sm text-[#1A1A1A] placeholder-[#9CA3AF] focus:border-[#8BA4B8] focus:outline-none transition-all" />
+                </div>
+              )}
             </div>
             <button type="submit" disabled={saving}
               className="px-6 py-3 bg-[#1A1A1A] text-white rounded-xl font-medium text-sm hover:bg-[#333] transition-all disabled:opacity-50">
@@ -170,8 +200,10 @@ export default function AdminCoupons() {
                   </p>
                   <p className="text-xs text-[#6B7280]">
                     Used {coupon.used_count}{coupon.max_uses ? ` / ${coupon.max_uses}` : ''}
-                    {coupon.min_order > 0 && ` · Min EGP ${coupon.min_order}`}
-                    {coupon.expires_at && ` · Expires ${new Date(coupon.expires_at).toLocaleDateString()}`}
+                    {coupon.min_order > 0 && ` Â· Min EGP ${coupon.min_order}`}
+                    {coupon.expires_at && ` Â· Expires ${new Date(coupon.expires_at).toLocaleDateString()}`}
+                    {coupon.coupon_type && ` Â· ${coupon.coupon_type}`}
+                    {coupon.linked_email && ` Â· ${coupon.linked_email}`}
                   </p>
                 </div>
               </div>
@@ -193,6 +225,7 @@ export default function AdminCoupons() {
           ))}
         </div>
       )}
+      <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </motion.div>
   );
 }

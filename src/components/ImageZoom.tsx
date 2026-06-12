@@ -1,11 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Image from 'next/image';
-
-function getIsTouchDevice(): boolean {
-  return typeof window !== 'undefined' && 'ontouchstart' in window;
-}
 
 interface ImageZoomProps {
   src: string;
@@ -13,7 +9,8 @@ interface ImageZoomProps {
 }
 
 export default function ImageZoom({ src, alt }: ImageZoomProps) {
-  const [isTouchDevice] = useState(getIsTouchDevice);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  useEffect(() => { setIsTouchDevice(typeof window !== 'undefined' && 'ontouchstart' in window); }, []);
   const [showZoom, setShowZoom] = useState(false);
   const [touchZoom, setTouchZoom] = useState(false);
   const [pos, setPos] = useState({ x: 50, y: 50 });

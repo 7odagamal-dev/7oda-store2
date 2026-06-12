@@ -1,8 +1,8 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export const DEFAULT_STORE_ID = '00000000-0000-0000-0000-000000000001';
-export const DEFAULT_STORE_SLUG = 'og-old-gold';
+export const DEFAULT_STORE_SLUG = '7H-old-gold';
 
 export interface StoreInfo {
   id: string;
@@ -42,7 +42,7 @@ export async function getStoreContext(req: NextRequest): Promise<StoreContext> {
   const isProduction = process.env.NODE_ENV === 'production';
 
   // ── 1. Admin session check ──
-  const token = req.cookies.get('og-admin-auth')?.value;
+  const token = req.cookies.get('7H-admin-auth')?.value;
   if (token) {
     const { data: session } = await supabaseAdmin
       .from('admin_sessions')
@@ -90,7 +90,7 @@ export async function getStoreContext(req: NextRequest): Promise<StoreContext> {
       return { storeId: domainStore.id, isSuperAdmin: false, source: 'domain' };
     }
 
-    // Then check slug (for subdomain-based routing: mystore.ogoldgold.com → slug "mystore")
+    // Then check slug (for subdomain-based routing: mystore.7hstore.com → slug "mystore")
     const subdomain = host.split('.')[0];
     if (subdomain && subdomain !== 'www' && subdomain !== host) {
       const { data: slugStore } = await supabaseAdmin

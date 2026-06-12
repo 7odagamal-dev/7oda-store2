@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState, useCallback } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
+import { AdminPagination } from '../components/AdminPagination';
 
 interface PaymentEvent {
   id: string; paymob_txn_id: string; order_id: string;
@@ -32,19 +33,27 @@ export default function AdminPayments() {
   const [paymobOrders, setPaymobOrders] = useState<PaymobOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('errors');
+  const [pageState, setPageState] = useState<Record<Tab, number>>({ events: 1, errors: 1, orders: 1 });
+  const [totalPages, setTotalPages] = useState<Record<Tab, number>>({ events: 1, errors: 1, orders: 1 });
+  const [totalCount, setTotalCount] = useState<Record<Tab, number>>({ events: 0, errors: 0, orders: 0 });
   const [retrying, setRetrying] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (activeTab?: Tab) => {
+    const t = activeTab || tab;
+    const p = pageState[t];
+    setLoading(true);
     try {
-      const res = await adminFetch('/api/admin/reconciliation');
+      const res = await adminFetch('/api/admin/reconciliation?tab=' + t + '&page=' + p + '&limit=50');
       if (!res.ok) return;
-      const data = await res.json();
-      setEvents(data.events || []);
-      setErrors(data.errors || []);
-      setPaymobOrders(data.paymobOrders || []);
+      const result = await res.json();
+      if (t === 'events') setEvents(result.data || []);
+      else if (t === 'errors') setErrors(result.data || []);
+      else if (t === 'orders') setPaymobOrders(result.data || []);
+      setTotalPages(prev => ({ ...prev, [t]: result.totalPages ?? 1 }));
+      setTotalCount(prev => ({ ...prev, [t]: result.total ?? 0 }));
     } catch { /* ignore */ }
     finally { setLoading(false); }
-  }, []);
+  }, [tab, pageState]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -88,6 +97,14 @@ export default function AdminPayments() {
   const unresolvedErrors = errors.filter(e => !e.resolved_at);
   const failedEvents = events.filter(e => e.status === 'failed');
 
+  const handleTabChange = (newTab: Tab) => {
+    setTab(newTab);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPageState(prev => ({ ...prev, [tab]: newPage }));
+  };
+
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: 'errors', label: 'Errors', count: unresolvedErrors.length },
     { key: 'events', label: 'Event Log', count: failedEvents.length },
@@ -99,7 +116,7 @@ export default function AdminPayments() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-[family-name:var(--font-playfair)] text-[#1A1A1A]">Payment Reconciliation</h1>
-          <p className="text-sm text-[#6B7280] mt-1">Event log · DLQ · Manual retry</p>
+          <p className="text-sm text-[#6B7280] mt-1">Event log Â· DLQ Â· Manual retry</p>
         </div>
         <div className="flex items-center gap-3">
           {failedEvents.length > 0 && (
@@ -108,7 +125,7 @@ export default function AdminPayments() {
               Retry All Failed ({failedEvents.length})
             </button>
           )}
-          <button onClick={fetchData}
+          <button onClick={() => fetchData()}
             className="px-4 py-2 bg-white text-[#6B7280] border border-[#E5E7EB] rounded-xl hover:bg-[#F3F5F8] text-sm font-medium transition-all">
             Refresh
           </button>
@@ -138,7 +155,7 @@ export default function AdminPayments() {
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-white rounded-xl border border-[#E5E7EB] p-1 shadow-sm">
         {tabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
+          <button key={t.key} onClick={() => handleTabChange(t.key)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               tab === t.key
                 ? 'bg-[#8BA4B8] text-white shadow-sm'
@@ -161,9 +178,10 @@ export default function AdminPayments() {
           {[...Array(5)].map((_, i) => (<div key={i} className="h-16 bg-[#F3F5F8] rounded-xl" />))}
         </div>
       ) : tab === 'errors' ? (
+        <>
         <ReconciliationTable
           title="Dead Letter Queue (DLQ)"
-          description="Failed webhook processing — requires manual review"
+          description="Failed webhook processing â€” requires manual review"
           headers={['Type', 'Message', 'Order', 'Date', 'Actions']}
           rows={errors.filter(e => !e.resolved_at).map(err => ({
             key: err.id,
@@ -175,7 +193,7 @@ export default function AdminPayments() {
                 'bg-gray-50 text-gray-600'
               }`}>{err.error_type}</span>,
               <span key="msg" className="text-sm text-[#4B5563] truncate max-w-[300px]">{err.error_message}</span>,
-              <span key="order" className="text-xs font-mono text-[#8BA4B8]">{err.order_id?.slice(0,8) || '—'}</span>,
+              <span key="order" className="text-xs font-mono text-[#8BA4B8]">{err.order_id?.slice(0,8) || 'â€”'}</span>,
               <span key="date" className="text-xs text-[#9CA3AF]">{new Date(err.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>,
               <div key="actions" className="flex gap-2">
                 {err.event_id ? (
@@ -193,7 +211,10 @@ export default function AdminPayments() {
             ],
           }))}
         />
+        <AdminPagination page={pageState['errors']} totalPages={totalPages['errors']} total={totalCount['errors']} onPageChange={handlePageChange} />
+        </>
       ) : tab === 'events' ? (
+        <>
         <ReconciliationTable
           title="Payment Event Log (Append-only)"
           description="Every webhook delivery recorded immutably"
@@ -214,11 +235,14 @@ export default function AdminPayments() {
               <span key="order" className="text-xs font-mono text-[#8BA4B8]">{ev.order_id.slice(0,8)}</span>,
               <span key="corr" className="text-xs font-mono text-[#9CA3AF]">{ev.correlation_id.slice(0,8)}</span>,
               <span key="recv" className="text-xs text-[#9CA3AF]">{new Date(ev.received_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>,
-              <span key="proc" className="text-xs text-[#9CA3AF]">{ev.processed_at ? new Date(ev.processed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>,
+              <span key="proc" className="text-xs text-[#9CA3AF]">{ev.processed_at ? new Date(ev.processed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'â€”'}</span>,
             ],
           }))}
         />
+        <AdminPagination page={pageState['events']} totalPages={totalPages['events']} total={totalCount['events']} onPageChange={handlePageChange} />
+        </>
       ) : (
+        <>
         <ReconciliationTable
           title="Paymob Orders"
           description="Orders with Paymob transaction IDs"
@@ -239,6 +263,8 @@ export default function AdminPayments() {
             ],
           }))}
         />
+        <AdminPagination page={pageState['orders']} totalPages={totalPages['orders']} total={totalCount['orders']} onPageChange={handlePageChange} />
+        </>
       )}
     </motion.div>
   );
@@ -252,7 +278,7 @@ function ReconciliationTable({ title, description, headers, rows }: {
     return (
       <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
         <p className="font-[family-name:var(--font-playfair)] text-[#9CA3AF]">No items to show</p>
-        <p className="text-xs text-[#9CA3AF] mt-1">System is healthy — no issues detected</p>
+        <p className="text-xs text-[#9CA3AF] mt-1">System is healthy â€” no issues detected</p>
       </div>
     );
   }

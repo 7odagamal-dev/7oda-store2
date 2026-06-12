@@ -1,0 +1,9 @@
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.6:3000
+- Environments: .env.local
+✓ Ready in 419ms
+- Experiments (use with caution):
+  · clientTraceMetadata
+
+[?25h

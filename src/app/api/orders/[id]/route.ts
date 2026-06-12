@@ -14,11 +14,14 @@ export async function GET(
       return NextResponse.json({ error: 'Order ID required' }, { status: 400 });
     }
 
-    // Require authentication — endpoint exposes PII (customer_name, address, items)
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    // Try to get authenticated user (guest users are allowed to look up orders by ID)
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      userId = user?.id || null;
+    } catch {
+      // Not authenticated — proceed as guest
     }
 
     const { storeId } = await getStoreContext(req);
@@ -47,8 +50,8 @@ export async function GET(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Ownership check: only the order owner can view PII
-    if (data.user_id && data.user_id !== user.id) {
+    // Ownership check: only if order has a user_id AND we have a logged-in user
+    if (data.user_id && userId && data.user_id !== userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -37,7 +37,7 @@ const faqs = [
     items: [
       { q: 'How do I find my correct size?', a: 'Check our Size Guide page for detailed measurements for each product. If you are between sizes, we recommend sizing up for a relaxed fit.' },
       { q: 'Are the products true to size?', a: 'Yes, our products follow standard sizing. However, some styles may have a different fit — please refer to the product description and size guide.' },
-      { q: 'How do I care for my OG Old Gold products?', a: 'We recommend washing inside out in cold water, avoiding bleach, and hang drying to preserve print quality and fabric longevity.' },
+      { q: 'How do I care for my 7H  products?', a: 'We recommend washing inside out in cold water, avoiding bleach, and hang drying to preserve print quality and fabric longevity.' },
     ],
   },
 ];

@@ -1,16 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { log, newCorrelationId } from '@/lib/logger';
 
 // SEC-01 + SEC-02 FIX: delete session from DB and clear the cookie server-side
 export async function POST(req: NextRequest) {
-  const token = req.cookies.get('og-admin-auth')?.value;
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
+
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+  const allowed = await checkRateLimit(ip, 'admin_logout', 10, 60000);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+  }
+
+  const token = req.cookies.get('7h-admin-auth')?.value;
 
   if (token) {
     await supabaseAdmin.from('admin_sessions').delete().eq('token', token);
   }
 
   const response = NextResponse.json({ success: true });
-  response.cookies.set('og-admin-auth', '', {
+  response.cookies.set('7h-admin-auth', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
@@ -24,5 +35,6 @@ export async function POST(req: NextRequest) {
     maxAge: 0,
     path: '/',
   });
+  log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/logout', method: 'POST', statusCode: 200, level: 'info', message: 'Admin logout successful', metadata: { hadToken: !!token } });
   return response;
 }

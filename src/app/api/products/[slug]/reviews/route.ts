@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { getStoreContext } from '@/lib/store-context';
 import { filterByStore } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { stripHtml } from '@/lib/email-utils';
 
 export async function GET(
   request: NextRequest,
@@ -85,9 +86,9 @@ export async function POST(
       .from('reviews')
       .insert({
         product_id: product.id,
-        name: name.trim(),
+        name: stripHtml(name.trim()).slice(0, 100),
         rating: parsedRating,
-        comment: comment.trim(),
+        comment: stripHtml(comment.trim()),
         image: image?.trim().slice(0, 500) || null,
         store_id: storeId,
       });

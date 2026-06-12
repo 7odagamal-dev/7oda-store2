@@ -2,14 +2,12 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { memo, useState } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Product } from '@/lib/supabase';
 import { useWishlist } from '@/context/WishlistContext';
 import CountdownTimer from '@/components/CountdownTimer';
 import QuickView from '@/components/QuickView';
-
-const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window;
 
 interface FlashSaleInfo {
   product_id: string;
@@ -25,6 +23,8 @@ interface ProductCardProps {
 
 function ProductCardComponent({ product, flashSale }: ProductCardProps) {
   const router = useRouter();
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  useEffect(() => { setIsTouchDevice(typeof window !== 'undefined' && 'ontouchstart' in window); }, []);
   const [isHovered, setIsHovered] = useState(false);
   const [touchToggled, setTouchToggled] = useState(false);
   const [imageError, setImageError] = useState(false);

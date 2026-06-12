@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminFetch } from '@/lib/admin-fetch';
+import { AdminPagination } from '../components/AdminPagination';
 import { slugify } from '@/lib/slugify';
 
 interface BlogPost {
@@ -32,6 +33,9 @@ const emptyForm = {
 
 export default function BlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -43,18 +47,30 @@ export default function BlogPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setPage(1);
+  };
+
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatusFilter(e.target.value as typeof statusFilter);
+    setPage(1);
+  };
+
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminFetch('/api/admin/blog?all=true');
+      const res = await adminFetch('/api/admin/blog?all=true&page=' + page + '&limit=20');
       const data = await res.json();
       setPosts(data.posts ?? []);
+      setTotal(data.total ?? 0);
+      setTotalPages(data.totalPages ?? 1);
     } catch {
       setPosts([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
@@ -246,7 +262,7 @@ export default function BlogPage() {
         />
         <select
           value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
+          onChange={handleStatusFilterChange}
           className="px-4 py-2.5 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-sm focus:border-[#8BA4B8] focus:outline-none transition-all"
         >
           <option value="all">All</option>
@@ -341,6 +357,7 @@ export default function BlogPage() {
                 </div>
                 {form.cover_image && (
                   <div className="mt-2 relative w-full h-32 rounded-xl overflow-hidden bg-[#F3F5F8]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={form.cover_image} alt="Cover preview" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   </div>
                 )}
@@ -388,6 +405,8 @@ export default function BlogPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+        <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
       {filtered.length === 0 ? (
         <div className="text-center py-16">

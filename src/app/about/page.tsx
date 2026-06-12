@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 
 export default function AboutPage() {
   return (
@@ -7,7 +7,7 @@ export default function AboutPage() {
         <h1 className="text-4xl font-[family-name:var(--font-playfair)] mb-8 text-[#1A1A1A]">Our Story</h1>
         <div className="text-[#6B7280] space-y-6 leading-relaxed">
           <p>
-            OG Old Gold was born out of a desire to redefine luxury streetwear in Egypt. We believe that true luxury lies in the details—the perfect cut, the finest fabrics, and the timeless designs that transcend seasonal trends.
+            7H  was born out of a desire to redefine luxury streetwear in Egypt. We believe that true luxury lies in the details—the perfect cut, the finest fabrics, and the timeless designs that transcend seasonal trends.
           </p>
           <p>
             Every piece in our collection is meticulously crafted for the modern minimalist. We source premium materials to ensure that our clothing not only looks exceptional but feels extraordinary.

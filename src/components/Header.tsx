@@ -1,7 +1,6 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
@@ -70,15 +69,7 @@ export default function Header() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex flex-col items-start group">
-            <div className="relative w-16 h-9 sm:w-20 sm:h-10">
-              <Image
-                src="/images/logo.jpeg"
-                alt="OG"
-                fill
-                className="object-contain transition-all duration-300 group-hover:scale-105"
-                sizes="80px"
-              />
-            </div>
+            <span className="text-xl font-bold tracking-[0.15em] font-[family-name:var(--font-playfair)]">7H</span>
           </Link>
 
           {/* Desktop Nav */}

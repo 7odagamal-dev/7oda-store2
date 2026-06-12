@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { adminFetch } from '@/lib/admin-fetch';
+import { AdminPagination } from '../components/AdminPagination';
 
 interface Subscriber {
   id: string;
@@ -16,6 +17,9 @@ interface Subscriber {
 
 export default function NewsletterPage() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -23,15 +27,17 @@ export default function NewsletterPage() {
   const fetchSubscribers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminFetch('/api/admin/newsletter');
+      const res = await adminFetch('/api/admin/newsletter?page=' + page + '&limit=20');
       const data = await res.json();
       setSubscribers(data.subscribers ?? []);
+      setTotal(data.total ?? 0);
+      setTotalPages(data.totalPages ?? 1);
     } catch {
       setSubscribers([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => { fetchSubscribers(); }, [fetchSubscribers]);
 
@@ -89,7 +95,7 @@ export default function NewsletterPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold">Newsletter</h1>
-          <p className="text-sm text-[#6B7280] mt-1">{subscribers.length} subscriber{subscribers.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-[#6B7280] mt-1">{total} subscriber{total !== 1 ? 's' : ''}</p>
         </div>
         <div className="flex gap-3">
           <button
@@ -107,7 +113,7 @@ export default function NewsletterPage() {
           type="text"
           placeholder="Search by email or name..."
           value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
+          onChange={e => { setSearchTerm(e.target.value); setPage(1); }}
           className="flex-1 min-w-[200px] px-4 py-2.5 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-sm focus:border-[#8BA4B8] focus:outline-none transition-all"
         />
       </div>
@@ -168,6 +174,7 @@ export default function NewsletterPage() {
           ))}
         </div>
       )}
+      <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </div>
   );
 }

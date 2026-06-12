@@ -1,11 +1,11 @@
-import { supabaseAdmin } from '@/lib/supabase-admin';
+﻿import { supabaseAdmin } from '@/lib/supabase-admin';
 import { DEFAULT_STORE_ID } from '@/lib/store-context';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Blog | OG Old Gold',
-  description: 'Style guides, fashion tips, and the latest trends from OG Old Gold.',
+  title: 'Blog | 7H ',
+  description: 'Style guides, fashion tips, and the latest trends from 7H .',
 };
 
 interface BlogPost {
@@ -42,7 +42,7 @@ export default async function BlogPage() {
       <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
         <div className="text-center mb-12">
           <h1 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-playfair)] tracking-wide">The Journal</h1>
-          <p className="text-[#6B7280] text-sm mt-3 max-w-lg mx-auto">Style guides, fashion insights, and curated stories from OG Old Gold.</p>
+          <p className="text-[#6B7280] text-sm mt-3 max-w-lg mx-auto">Style guides, fashion insights, and curated stories from 7H .</p>
         </div>
 
         {posts.length === 0 ? (
@@ -59,6 +59,7 @@ export default async function BlogPage() {
               >
                 <div className="aspect-[16/10] bg-[#F3F5F8] overflow-hidden">
                   {post.cover_image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={post.cover_image}
                       alt={post.title}
@@ -67,7 +68,7 @@ export default async function BlogPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-4xl font-bold text-[#E5E7EB] font-[family-name:var(--font-playfair)]">OG</span>
+                      <span className="text-4xl font-bold text-[#E5E7EB] font-[family-name:var(--font-playfair)]">7H</span>
                     </div>
                   )}
                 </div>

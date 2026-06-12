@@ -1,42 +1,54 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAdminSession } from '@/lib/auth';
+import { requireRole } from '@/lib/admin-guards';
 import { csrfGuard, safeJson } from '@/lib/csrf';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { log, newCorrelationId } from '@/lib/logger';
 import sanitizeHtml from 'sanitize-html';
 
 export async function GET(req: NextRequest) {
+  const roleResp = await requireRole(req, ['superadmin', 'admin']);
+  if (roleResp) return roleResp;
   const session = await getAdminSession(req);
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const storeId = session.storeId || '00000000-0000-0000-0000-000000000001';
     const { searchParams } = new URL(req.url);
     const includeUnpublished = searchParams.get('all') === 'true';
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
 
     let query = supabaseAdmin
       .from('blog_posts')
-      .select('*')
-      .eq('store_id', storeId)
-      .order('created_at', { ascending: false });
+      .select('*', { count: 'exact', head: false })
+      .eq('store_id', storeId);
 
     if (!includeUnpublished) {
       query = query.eq('published', true);
     }
 
-    const { data: posts, error } = await query;
+    const { data: posts, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
     if (error) {
       console.error('Admin blog fetch error:', error.message);
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
-    return NextResponse.json({ posts });
+    return NextResponse.json({
+      posts: posts || [],
+      total: count ?? 0,
+      page,
+      totalPages: Math.ceil((count ?? 0) / limit),
+    });
   } catch (error) {
     console.error('Admin blog GET error:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
-}
-
-function sanitizeSlug(text: string): string {
+}function sanitizeSlug(text: string): string {
   return text
     .toLowerCase()
     .replace(/[^\w\s-]/g, '')
@@ -64,10 +76,18 @@ function sanitizeBlogContent(str: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
   const csrfResp = csrfGuard(req);
   if (csrfResp) return csrfResp;
+  const roleResp = await requireRole(req, ['superadmin', 'admin']);
+  if (roleResp) return roleResp;
   const session = await getAdminSession(req);
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+  const allowed = await checkRateLimit(ip, 'admin_blog', 20, 60000);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+  }
   try {
     const storeId = session.storeId || '00000000-0000-0000-0000-000000000001';
     const body = await req.json();
@@ -124,18 +144,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/blog', method: 'POST', statusCode: 200, level: 'info', message: 'Blog post created', metadata: { postId: post.id } });
     return safeJson({ post });
   } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/blog', method: 'POST', statusCode: 500, level: 'error', message: 'Blog post creation failed', error: msg });
     console.error('Admin blog POST error:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
 export async function PUT(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
   const csrfResp = csrfGuard(req);
   if (csrfResp) return csrfResp;
+  const roleResp = await requireRole(req, ['superadmin', 'admin']);
+  if (roleResp) return roleResp;
   const session = await getAdminSession(req);
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+  const allowed = await checkRateLimit(ip, 'admin_blog', 20, 60000);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+  }
   try {
     const storeId = session.storeId || '00000000-0000-0000-0000-000000000001';
     const body = await req.json();
@@ -184,18 +215,29 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/blog', method: 'PUT', statusCode: 200, level: 'info', message: 'Blog post updated', metadata: { postId: post.id } });
     return safeJson({ post });
   } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/blog', method: 'PUT', statusCode: 500, level: 'error', message: 'Blog post update failed', error: msg });
     console.error('Admin blog PUT error:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
 export async function DELETE(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
   const csrfResp = csrfGuard(req);
   if (csrfResp) return csrfResp;
+  const roleResp = await requireRole(req, ['superadmin', 'admin']);
+  if (roleResp) return roleResp;
   const session = await getAdminSession(req);
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+  const allowed = await checkRateLimit(ip, 'admin_blog', 20, 60000);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+  }
   try {
     const storeId = session.storeId || '00000000-0000-0000-0000-000000000001';
     const { id } = await req.json();
@@ -215,9 +257,12 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/blog', method: 'DELETE', statusCode: 200, level: 'info', message: 'Blog post deleted', metadata: { postId: id } });
     return safeJson({ success: true });
   } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/blog', method: 'DELETE', statusCode: 500, level: 'error', message: 'Blog post deletion failed', error: msg });
     console.error('Admin blog DELETE error:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

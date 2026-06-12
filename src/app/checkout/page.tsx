@@ -28,9 +28,10 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<'online_transfer' | 'cash_on_delivery' | 'paymob'>('online_transfer');
   const [paymentDetails, setPaymentDetails] = useState({ vodafone_cash: '', instapay: '' });
   const [paymobError, setPaymobError] = useState('');
+  const [redirecting, setRedirecting] = useState(false);
+  const [paymentDetailsError, setPaymentDetailsError] = useState(false);
 
   const [couponCode, setCouponCode] = useState('');
-  const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
@@ -51,6 +52,7 @@ export default function Checkout() {
   const [formData, setFormData] = useState({
     customer_name: '',
     phone: '',
+    email: '',
     governorate: '',
     city: '',
     address: '',
@@ -59,7 +61,11 @@ export default function Checkout() {
   });
 
   useEffect(() => {
-    fetch('/api/payment-details').then(r => r.json()).then(setPaymentDetails).catch(() => {});
+    fetch('/api/payment-details').then(async r => {
+      if (!r.ok) { setPaymentDetailsError(true); return; }
+      const data = await r.json();
+      setPaymentDetails(data);
+    }).catch(() => setPaymentDetailsError(true));
   }, []);
 
   const handleGovernorateChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -84,7 +90,7 @@ export default function Checkout() {
     if (name === 'phone') setPhoneError('');
   }, []);
 
-  const finalAmount = useMemo(() => total + shippingCost - couponDiscount, [total, shippingCost, couponDiscount]);
+  const finalAmount = useMemo(() => total + shippingCost, [total, shippingCost]);
 
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -94,16 +100,14 @@ export default function Checkout() {
       const res = await fetch('/api/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponCode.trim(), orderTotal: subtotal }),
+        body: JSON.stringify({ code: couponCode.trim(), email: formData.email }),
       });
       const data = await res.json();
       if (data.valid) {
-        setCouponDiscount(data.discount);
         setCouponApplied(true);
-        setCouponInfo({ type: data.discountType, value: data.discountValue, code: data.code });
+        setCouponInfo({ type: data.discount_type, value: data.discount_value, code: data.code });
       } else {
         setCouponError(data.error || 'Invalid coupon');
-        setCouponDiscount(0);
         setCouponApplied(false);
         setCouponInfo(null);
       }
@@ -116,7 +120,6 @@ export default function Checkout() {
 
   const removeCoupon = () => {
     setCouponCode('');
-    setCouponDiscount(0);
     setCouponApplied(false);
     setCouponError('');
     setCouponInfo(null);
@@ -139,10 +142,14 @@ export default function Checkout() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            ...formData,
-            payment_method: 'paymob',
+            customer_name: formData.customer_name,
             phone: cleanPhone,
-            shipping_cost: shippingCost,
+            email: formData.email,
+            governorate: formData.governorate,
+            city: formData.city,
+            address: formData.address,
+            notes: formData.notes,
+            payment_method: 'paymob',
             coupon_code: couponApplied ? couponCode.trim().toUpperCase() : null,
             idempotency_key: idempotencyKey,
             items: items.map(item => ({
@@ -155,12 +162,11 @@ export default function Checkout() {
         const orderData = await orderRes.json();
         if (!orderRes.ok) throw new Error(orderData.error || 'Order creation failed');
 
-        // Create Paymob payment
+        // Create Paymob payment (amount is server-computed from DB — never trust client)
         const payRes = await fetch('/api/paymob/payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            amount: finalAmount,
             orderId: orderData.orderId,
             customer: {
               name: formData.customer_name,
@@ -174,6 +180,7 @@ export default function Checkout() {
         if (!payRes.ok) throw new Error(payData.error || 'Payment initiation failed');
 
         clearCart();
+        setRedirecting(true);
         // Redirect to Paymob iframe
         window.location.href = payData.iframeUrl;
       } catch (err: unknown) {
@@ -189,10 +196,14 @@ export default function Checkout() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            ...formData,
-            payment_method: paymentMethod,
+            customer_name: formData.customer_name,
             phone: cleanPhone,
-            shipping_cost: shippingCost,
+            email: formData.email,
+            governorate: formData.governorate,
+            city: formData.city,
+            address: formData.address,
+            notes: formData.notes,
+            payment_method: paymentMethod,
             coupon_code: couponApplied ? couponCode.trim().toUpperCase() : null,
             idempotency_key: idempotencyKey,
             items: items.map(item => ({
@@ -206,10 +217,10 @@ export default function Checkout() {
         if (!res.ok) throw new Error(data.detail ? `${data.error} (${data.detail})` : (data.error || 'Error'));
 
       const summary = {
-        subtotal,
-        discount: couponDiscount,
+        subtotal: data.total ?? 0,
+        discount: 0,
         shippingCost,
-        finalAmount,
+        finalAmount: data.total ?? 0,
         items: items.map(item => ({
           name: item.product.name,
           size: item.size,
@@ -232,12 +243,23 @@ export default function Checkout() {
     } finally {
       setLoading(false);
     }
-  }, [items, formData, finalAmount, clearCart, paymentMethod, subtotal, shippingCost, couponDiscount, couponApplied, couponCode, idempotencyKey]);
+  }, [items, formData, clearCart, paymentMethod, shippingCost, couponApplied, couponCode, idempotencyKey]);
 
   if (!mounted) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-accent border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (redirecting) {
+    return (
+      <div className="min-h-screen pt-24 flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-accent border-t-transparent mx-auto mb-4"></div>
+          <p className="text-[var(--text-sm)] text-secondary">Redirecting to payment gateway...</p>
+        </div>
       </div>
     );
   }
@@ -289,6 +311,9 @@ export default function Checkout() {
                   className={`w-full px-4 py-3 bg-[#F8F9FB] border rounded-xl text-sm focus:outline-none transition-all ${phoneError ? 'border-red-400' : 'border-[#E5E7EB] focus:border-[#8BA4B8]'}`}
                   placeholder="Phone Number" />
                 {phoneError && <p className="text-xs text-red-400 -mt-2">{phoneError}</p>}
+                <input type="email" name="email" required value={formData.email} onChange={handleChange}
+                  className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] focus:border-[#8BA4B8] focus:outline-none rounded-xl text-sm text-[#1A1A1A] placeholder-[#9CA3AF] transition-all"
+                  placeholder="Email Address" />
                 <select name="governorate" required value={formData.governorate} onChange={handleGovernorateChange}
                   className="w-full px-4 py-3 bg-[#F8F9FB] border border-[#E5E7EB] focus:border-[#8BA4B8] focus:outline-none rounded-xl text-sm text-[#1A1A1A] transition-all">
                   <option value="">Select Governorate</option>
@@ -309,7 +334,7 @@ export default function Checkout() {
               </h2>
               <div className="space-y-[var(--space-sm)]">
                 {[
-                  { value: 'online_transfer', label: 'Online Transfer (Vodafone Cash / InstaPay)' },
+                  { value: 'online_transfer', label: 'Bank Transfer — Vodafone Cash / InstaPay (Manual)' },
                   { value: 'paymob', label: 'Pay with Card (Visa / Mastercard)' },
                   { value: 'cash_on_delivery', label: 'Cash on Delivery' },
                 ].map(option => (
@@ -329,6 +354,9 @@ export default function Checkout() {
                 ))}
               </div>
               {paymobError && <p className="text-xs text-rose-500 mt-2">{paymobError}</p>}
+              {paymentMethod === 'online_transfer' && paymentDetailsError && (
+                <p className="text-xs text-amber-600 mt-2">Payment details not configured. Please <a href="/contact" className="underline">contact us</a> to complete your transfer.</p>
+              )}
             </section>
 
             <button
@@ -362,9 +390,9 @@ export default function Checkout() {
                 <div className="flex items-center justify-between bg-card rounded-[var(--radius-xl)] px-[var(--space-md)] py-[var(--space-sm)]">
                   <div>
                     <span className="text-[var(--text-xs)] font-semibold text-emerald-700">
-                      {couponInfo?.type === 'percentage' ? `${couponInfo.value}% OFF` : `EGP ${couponDiscount.toLocaleString()} OFF`}
+                      {couponInfo?.type === 'percentage' ? `${couponInfo.value}% OFF` : `EGP ${couponInfo?.value?.toLocaleString() || 0} OFF`}
                     </span>
-                    <p className="text-[var(--text-sm)] font-bold text-foreground">− EGP {couponDiscount.toLocaleString()}</p>
+                    <p className="text-[var(--text-sm)] font-bold text-foreground">Coupon applied</p>
                   </div>
                   <button onClick={removeCoupon} className="text-[var(--text-xs)] text-secondary hover:text-rose-500 underline">Remove</button>
                 </div>
@@ -384,7 +412,7 @@ export default function Checkout() {
 
             <div className="mt-[var(--space-lg)] pt-[var(--space-lg)] border-t border-border-light space-y-[var(--space-sm)] text-[var(--text-sm)]">
               <div className="flex justify-between text-secondary"><span>Subtotal</span><span>EGP {subtotal.toLocaleString()}</span></div>
-              {couponDiscount > 0 && <div className="flex justify-between text-emerald-600 font-medium"><span>Coupon Discount</span><span>− EGP {couponDiscount.toLocaleString()}</span></div>}
+              {couponApplied && <div className="flex justify-between text-emerald-600 font-medium"><span>Coupon</span><span>{couponInfo?.type === 'percentage' ? `${couponInfo.value}% OFF` : `EGP ${couponInfo?.value?.toLocaleString() || 0} OFF`}</span></div>}
               <div className="flex justify-between text-secondary"><span>Shipping</span><span>{shippingCost > 0 ? `EGP ${shippingCost}` : `${SHIPPING_RANGE.min} – ${SHIPPING_RANGE.max} EGP`}</span></div>
               <div className="flex justify-between pt-[var(--space-lg)] border-t border-border-light text-[var(--text-base)] font-bold">
                 <span className="text-foreground">TOTAL</span>

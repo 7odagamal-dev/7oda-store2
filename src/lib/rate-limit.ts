@@ -35,7 +35,11 @@ function clearMemoryRateLimit(ip: string, endpoint: string): void {
 }
 
 export async function checkRateLimit(ip: string, endpoint: string, maxAttempts: number, windowMs: number): Promise<boolean> {
-  if (ip === 'unknown' || !ip) return true;
+  if (ip === 'unknown' || !ip) {
+    // All unknown-IP traffic shares a single rate-limit bucket (prevents bypass)
+    // Conservative limit: 60 requests per minute for all unidentifiable traffic
+    return checkMemoryRateLimit('__unknown__', endpoint, Math.ceil(maxAttempts * 0.3), windowMs);
+  }
 
   // Try atomic RPC first (avoids race condition)
   try {

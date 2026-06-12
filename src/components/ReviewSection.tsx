@@ -160,6 +160,7 @@ export default function ReviewSection({ productSlug }: ReviewSectionProps) {
               <p className="text-sm text-[#4B5563] leading-relaxed">{review.comment}</p>
               {review.image && (
                 <div className="mt-3 rounded-xl overflow-hidden bg-white max-w-[200px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={review.image} alt="Review photo" className="w-full h-auto object-cover" />
                 </div>
               )}
@@ -213,6 +214,7 @@ export default function ReviewSection({ productSlug }: ReviewSectionProps) {
             </div>
             {imageFile && (
               <div className="mt-2 w-20 h-20 rounded-xl overflow-hidden bg-white border border-[#E5E7EB]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={URL.createObjectURL(imageFile)} alt="Preview" className="w-full h-full object-cover" />
               </div>
             )}

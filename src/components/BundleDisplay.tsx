@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { ReactNode } from 'react';
 
@@ -42,7 +42,7 @@ export function BundleImageDisplay({ bundle, className }: BundleDisplayProps) {
 
   return (
     <div className={`w-full aspect-[4/3] rounded-[var(--radius-xl)] bg-card-hover flex items-center justify-center mb-[var(--space-md)] ${className || ''}`}>
-      <span className="text-[var(--text-3xl)] font-bold text-border font-[family-name:var(--font-playfair)]">OG</span>
+      <span className="text-[var(--text-3xl)] font-bold text-border font-[family-name:var(--font-playfair)]">7H</span>
     </div>
   );
 }
@@ -67,6 +67,7 @@ function PublicLayoutRender({ images, layout, adjustments }: { images: string[];
   const img = (i: number) => {
     const adj = adjustments[i] || { scale: 1, rotate: 0, panX: 0, panY: 0 };
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={images[i]} alt=""
         className="w-full h-full object-cover"
@@ -114,7 +115,7 @@ function PublicLayoutRender({ images, layout, adjustments }: { images: string[];
     return <div className="flex w-full h-full"><div className="flex-1 h-full grid grid-cols-2">{count >= 1 && <div className="overflow-hidden border-b border-r border-border">{img(0)}</div>}{count >= 2 && <div className="overflow-hidden border-b border-border">{img(1)}</div>}{count >= 3 && <div className="overflow-hidden border-r border-border col-span-2">{img(2)}</div>}</div>{count >= 4 && <div className="w-1/3 h-full overflow-hidden border-l border-border">{img(3)}</div>}</div>;
   }
 
-  return <div className="w-full h-full flex items-center justify-center bg-card-hover"><span className="text-3xl font-bold text-border font-[family-name:var(--font-playfair)]">OG</span></div>;
+  return <div className="w-full h-full flex items-center justify-center bg-card-hover"><span className="text-3xl font-bold text-border font-[family-name:var(--font-playfair)]">7H</span></div>;
 }
 
 const LAYOUT_CONFIGS = [

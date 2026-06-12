@@ -1,6 +1,6 @@
 'use client';
 
-const STORAGE_PREFIX = 'og-';
+const STORAGE_PREFIX = '7h-';
 
 export function safeParseStorage<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;

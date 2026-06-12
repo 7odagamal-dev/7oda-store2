@@ -3,11 +3,15 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyPassword } from '@/lib/password';
 import { createSession } from '@/lib/auth';
 import { checkRateLimit, clearRateLimit } from '@/lib/rate-limit';
+import { log, newCorrelationId } from '@/lib/logger';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
+
   const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
 
   const isAllowed = await checkRateLimit(ip, 'store_login', MAX_ATTEMPTS, LOCKOUT_MS);
@@ -63,6 +67,7 @@ export async function POST(req: NextRequest) {
       .eq('id', user.store_id)
       .single();
 
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/auth/login', method: 'POST', statusCode: 200, level: 'info', message: 'Login successful', metadata: { email: normalizedEmail, role: user.role } });
     return NextResponse.json({
       success: true,
       store: store ? { id: store.id, name: store.name, slug: store.slug } : null,
@@ -70,6 +75,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/auth/login', method: 'POST', statusCode: 500, level: 'error', message: 'Login failed', error: msg });
     console.error('Login error:', msg);
     return NextResponse.json({ error: 'Login failed' }, { status: 500 });
   }

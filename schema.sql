@@ -1,5 +1,5 @@
--- ============================================================
--- OG Old Gold — Full Database Schema
+﻿-- ============================================================
+-- 7H  — Full Database Schema
 -- Run this in Supabase SQL Editor to create all tables
 -- ============================================================
 
@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS orders (
   display_id TEXT,
   user_id UUID, -- References auth.users(id) when Supabase Auth is used
   customer_name TEXT NOT NULL,
+  customer_email TEXT,
   phone TEXT NOT NULL,
   governorate TEXT NOT NULL,
   city TEXT NOT NULL,
@@ -97,15 +98,23 @@ CREATE TABLE IF NOT EXISTS orders (
   total INTEGER NOT NULL DEFAULT 0,
   items JSONB DEFAULT '[]',
   paymob_txn_id TEXT,
+  idempotency_key TEXT,
+  coupon_id UUID REFERENCES coupons(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_paymob_txn_id ON orders(paymob_txn_id) WHERE paymob_txn_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_idempotency_key ON orders(idempotency_key) WHERE idempotency_key IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_orders_store ON orders(store_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(store_id, status);
 CREATE INDEX IF NOT EXISTS idx_orders_phone ON orders(phone);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_display ON orders(display_id);
+CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(store_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON orders(customer_email);
+CREATE INDEX IF NOT EXISTS idx_orders_ip_address ON orders(ip_address);
 
 -- 6. Coupons
 CREATE TABLE IF NOT EXISTS coupons (
@@ -119,11 +128,19 @@ CREATE TABLE IF NOT EXISTS coupons (
   used_count INTEGER DEFAULT 0,
   expires_at TIMESTAMPTZ,
   is_active BOOLEAN DEFAULT true,
+  coupon_type TEXT NOT NULL DEFAULT 'admin' CHECK (coupon_type IN ('newsletter', 'admin', 'public', 'targeted')),
+  linked_email TEXT,
+  subscriber_id UUID REFERENCES subscribers(id) ON DELETE SET NULL,
+  used_by_order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+  used_at TIMESTAMPTZ,
+  used_by_ip TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(store_id, code)
 );
 
 CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(store_id, code);
+CREATE INDEX IF NOT EXISTS idx_coupons_linked_email ON coupons(linked_email);
+CREATE INDEX IF NOT EXISTS idx_coupons_subscriber_id ON coupons(subscriber_id);
 
 -- 7. Shipping Rates
 CREATE TABLE IF NOT EXISTS shipping_rates (
@@ -247,12 +264,17 @@ CREATE TABLE IF NOT EXISTS subscribers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id UUID REFERENCES stores(id) ON DELETE CASCADE NOT NULL,
   email TEXT NOT NULL,
+  name TEXT,
+  discount_code TEXT,
+  discount_used BOOLEAN DEFAULT false,
   is_active BOOLEAN DEFAULT true,
   subscribed_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(store_id, email)
 );
 
 CREATE INDEX IF NOT EXISTS idx_subscribers_store ON subscribers(store_id);
+CREATE INDEX IF NOT EXISTS idx_subscribers_discount_code ON subscribers(discount_code);
+CREATE INDEX IF NOT EXISTS idx_subscribers_email ON subscribers(email);
 
 -- 16. Flash Sales
 CREATE TABLE IF NOT EXISTS flash_sales (
@@ -348,18 +370,36 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- release_order_stock: Releases reserved stock (cancels the order)
+-- Handles both cases:
+--   1. Reserved but not committed: decrements reserved_stock only
+--   2. Already committed (reserved_stock < qty): restores stock AND reserved_stock
 CREATE OR REPLACE FUNCTION release_order_stock(order_id UUID, items JSONB)
 RETURNS VOID AS $$
 DECLARE
   item JSONB;
   order_store_id UUID;
+  qty INTEGER;
+  current_reserved INTEGER;
 BEGIN
   SELECT store_id INTO order_store_id FROM orders WHERE id = order_id;
   FOR item IN SELECT * FROM jsonb_array_elements(items)
   LOOP
-    UPDATE products
-    SET reserved_stock = GREATEST(reserved_stock - (item->>'quantity')::INTEGER, 0)
-    WHERE id = (item->>'product_id')::UUID;
+    qty := (item->>'quantity')::INTEGER;
+    SELECT reserved_stock INTO current_reserved
+    FROM products WHERE id = (item->>'product_id')::UUID;
+
+    IF current_reserved >= qty THEN
+      -- Case 1: Stock was reserved but not committed
+      UPDATE products
+      SET reserved_stock = reserved_stock - qty
+      WHERE id = (item->>'product_id')::UUID;
+    ELSE
+      -- Case 2: Stock was already committed (or partially), restore it
+      UPDATE products
+      SET stock = stock + qty,
+          reserved_stock = GREATEST(reserved_stock - qty, 0)
+      WHERE id = (item->>'product_id')::UUID;
+    END IF;
 
     INSERT INTO inventory_log (store_id, order_id, product_id, change, reason)
     VALUES (order_store_id, order_id, (item->>'product_id')::UUID, -(item->>'quantity')::INTEGER, 'release');
@@ -387,22 +427,50 @@ ALTER TABLE flash_sales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bundles ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for products, flash_sales, bundles, blog_posts
+DROP POLICY IF EXISTS "Public read products" ON products;
 CREATE POLICY "Public read products" ON products FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read flash_sales" ON flash_sales;
 CREATE POLICY "Public read flash_sales" ON flash_sales FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read bundles" ON bundles;
 CREATE POLICY "Public read bundles" ON bundles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read blog_posts" ON blog_posts;
 CREATE POLICY "Public read blog_posts" ON blog_posts FOR SELECT USING (published = true);
 
 -- Authenticated user access for orders (own orders only)
+DROP POLICY IF EXISTS "Users read own orders" ON orders;
 CREATE POLICY "Users read own orders" ON orders FOR SELECT USING (auth.uid() = user_id);
+
+-- Public insert for orders (checkout creates orders for guests and logged-in users)
+DROP POLICY IF EXISTS "Public insert orders" ON orders;
+CREATE POLICY "Public insert orders" ON orders FOR INSERT WITH CHECK (true);
+
+-- Public insert for messages (contact form)
+DROP POLICY IF EXISTS "Public insert messages" ON messages;
+CREATE POLICY "Public insert messages" ON messages FOR INSERT WITH CHECK (true);
+
+-- Coupon read restricted — all API routes use supabaseAdmin (service role), so no public SELECT needed.
+-- RPC-based coupon validation prevents enumeration.
+DROP POLICY IF EXISTS "Public read coupons" ON coupons;
+
+-- Grant EXECUTE on RPCs that anon needs (reserve_order_stock for checkout)
+-- SECURITY DEFINER so they run with owner privileges regardless of caller
+ALTER FUNCTION reserve_order_stock(UUID, JSONB) SECURITY DEFINER;
+ALTER FUNCTION atomic_check_rate_limit(TEXT, INTEGER, INTEGER) SECURITY DEFINER;
 
 -- Service-role (admin) bypasses RLS — access controlled via getAdminSession()
 -- Admin routes use supabaseAdmin (service-role key) so they are unaffected by RLS
+
+-- ⚠️ Important: public API routes (checkout, payment, contact, bundles) should use
+--    supabaseAnon (anon key) so that RLS policies are enforced.
+--    The callback route MUST keep using supabaseAdmin because Paymob webhooks
+--    are server-to-server without a user session and need to write payment_events,
+--    payment_errors, and call commit/release_order_stock RPCs.
 
 -- ============================================================
 -- DEFAULT STORE
 -- ============================================================
 INSERT INTO stores (id, name, slug, domain, is_active)
-VALUES ('00000000-0000-0000-0000-000000000001', 'OG Old Gold', 'og-old-gold', NULL, true)
+VALUES ('00000000-0000-0000-0000-000000000001', '7H ', '7H-old-gold', NULL, true)
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
@@ -510,16 +578,21 @@ END;
 $$;
 
 -- ============================================================
+-- Migration: Add ip_address to orders (audit trail for security)
+-- ============================================================
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS ip_address TEXT;
+
+-- ============================================================
+-- Migration: Add reserved_stock to products (for stock reservation)
+-- ============================================================
+ALTER TABLE products ADD COLUMN IF NOT EXISTS reserved_stock INTEGER DEFAULT 0 CHECK (reserved_stock >= 0);
+
+-- ============================================================
 -- Migration: Add image_source + image_layout + image_data to bundles
 -- ============================================================
 ALTER TABLE bundles ADD COLUMN IF NOT EXISTS image_source TEXT DEFAULT 'custom';
 ALTER TABLE bundles ADD COLUMN IF NOT EXISTS image_layout TEXT DEFAULT 'side-by-side';
 ALTER TABLE bundles ADD COLUMN IF NOT EXISTS image_data JSONB DEFAULT '{}'::jsonb;
-
--- ============================================================
--- Migration: Add coupon_id to orders (for coupon lifecycle tracking)
--- ============================================================
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_id UUID REFERENCES coupons(id) ON DELETE SET NULL;
 
 -- ============================================================
 -- Atomic Coupon Usage Decrement (for cancellations / failures)

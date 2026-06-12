@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -70,7 +70,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-8">
           <h1 className="text-2xl font-[family-name:var(--font-playfair)] text-[#1A1A1A] mb-1">Create Account</h1>
-          <p className="text-sm text-[#6B7280] mb-8">Join OG Old Gold today</p>
+          <p className="text-sm text-[#6B7280] mb-8">Join 7H  today</p>
 
           {error && (
             <div className="mb-6 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>

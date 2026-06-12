@@ -1,4 +1,4 @@
-import { MetadataRoute } from 'next';
+﻿import { MetadataRoute } from 'next';
 import { normalizeSupabaseProjectUrl } from '@/lib/supabase-project-url';
 import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_STORE_ID } from '@/lib/store-context';
@@ -18,7 +18,7 @@ function getServerSupabase() {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://oldgold.life';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://7h-store.life';
 
   const entries: MetadataRoute.Sitemap = STATIC_ROUTES.map(route => ({
     url: `${baseUrl}${route}`,

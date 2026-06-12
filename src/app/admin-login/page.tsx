@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -103,7 +103,7 @@ export default function AdminLogin() {
           {/* Logo */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-[family-name:var(--font-playfair)] tracking-[0.15em] text-[#1A1A1A] mb-1">
-              OG
+              7H
             </h1>
             <p className="text-xs tracking-[0.3em] text-[#8BA4B8] uppercase font-medium">
               Admin Access

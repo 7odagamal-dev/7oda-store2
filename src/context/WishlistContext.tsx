@@ -22,13 +22,13 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const saved = safeParseStorage<string[]>('og_wishlist', []);
+    const saved = safeParseStorage<string[]>('7h_wishlist', []);
     if (saved.length > 0) setWishlist(saved);
     setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (hydrated) safeSetStorage('og_wishlist', wishlist);
+    if (hydrated) safeSetStorage('7h_wishlist', wishlist);
   }, [wishlist, hydrated]);
 
   const toggleWishlist = useCallback((slug: string) => {

@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAdminSession } from '@/lib/auth';
+import { requireRole } from '@/lib/admin-guards';
 import { filterByStore } from '@/lib/db';
 import type { Order } from '@/lib/supabase';
 
 export async function GET(req: NextRequest) {
+  const roleResp = await requireRole(req, ['superadmin', 'admin']);
+  if (roleResp) return roleResp;
   const session = await getAdminSession(req);
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
     let productsQuery = supabaseAdmin.from('products').select('id', { count: 'exact' });

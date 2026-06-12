@@ -1,10 +1,10 @@
-import { Metadata } from 'next';
+﻿import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Our Story - OG Store',
-  description: 'Discover the story behind OG Old Gold — premium luxury streetwear brand based in Alexandria, Egypt.',
+  title: 'Our Story - 7H Store',
+  description: 'Discover the story behind 7H  — premium luxury streetwear brand based in Alexandria, Egypt.',
   openGraph: {
-    title: 'Our Story - OG Old Gold',
+    title: 'Our Story - 7H ',
     description: 'Premium luxury streetwear brand based in Alexandria, Egypt.',
   },
 };

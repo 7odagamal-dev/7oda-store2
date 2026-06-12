@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminFetch } from '@/lib/admin-fetch';
+import { AdminPagination } from '../components/AdminPagination';
 
 interface Product {
   id: string;
@@ -75,6 +76,9 @@ const LAYOUTS = [
 export default function BundlesPage() {
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -95,12 +99,14 @@ export default function BundlesPage() {
     setLoading(true);
     try {
       const [bundlesRes, productsRes] = await Promise.all([
-        adminFetch('/api/admin/bundles'),
+        adminFetch('/api/admin/bundles?page=' + page + '&limit=20'),
         adminFetch('/api/admin/products'),
       ]);
       const bundlesData = await bundlesRes.json();
       const productsData = await productsRes.json();
       setBundles(bundlesData.bundles ?? []);
+      setTotal(bundlesData.total ?? 0);
+      setTotalPages(bundlesData.totalPages ?? 1);
       setProducts(productsData.data ?? []);
     } catch {
       setBundles([]);
@@ -108,7 +114,7 @@ export default function BundlesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => { fetchBundles(); }, [fetchBundles]);
 
@@ -408,7 +414,8 @@ export default function BundlesPage() {
                           return (
                             <div key={i} className="relative group">
                               <div className="w-16 h-16 rounded-lg overflow-hidden bg-[#F3F5F8] border border-[#E5E7EB]">
-                                <img src={url} alt="" className="w-full h-full object-cover" style={{ transform: `translate(${adj.panX || 0}px, ${adj.panY || 0}px) scale(${adj.scale}) rotate(${adj.rotate}deg)` }} />
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={url} alt="" className="w-full h-full object-cover" style={{ transform: `translate(${adj.panX || 0}px, ${adj.panY || 0}px) scale(${adj.scale}) rotate(${adj.rotate}deg)` }} />
                               </div>
                               {form.image_source === 'custom' && (
                                 <button onClick={() => removeImage(i)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-400 text-white rounded-full text-[10px] leading-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">×</button>
@@ -481,6 +488,7 @@ export default function BundlesPage() {
                             return (
                               <div key={i} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-[#E5E7EB]">
                                 <div className="w-8 h-8 rounded overflow-hidden bg-[#F3F5F8] shrink-0">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img src={url} alt="" className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1 grid grid-cols-2 gap-x-3 gap-y-1">
@@ -551,6 +559,7 @@ export default function BundlesPage() {
                     <label key={p.id} className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${form.product_ids.includes(p.id) ? 'bg-[#8BA4B8]/10 border border-[#8BA4B8]' : 'bg-white border border-[#E5E7EB] hover:border-[#8BA4B8]'}`}>
                       <input type="checkbox" checked={form.product_ids.includes(p.id)} onChange={() => toggleProduct(p.id)} className="sr-only" />
                       <div className="w-8 h-8 rounded bg-[#F3F5F8] overflow-hidden shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         {p.main_image && <img src={p.main_image} alt={p.name} className="w-full h-full object-cover" />}
                       </div>
                       <span className="text-xs font-medium">{p.name}</span>
@@ -626,6 +635,7 @@ export default function BundlesPage() {
           ))}
         </div>
       )}
+        <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </div>
   );
 }
@@ -689,6 +699,7 @@ function LayoutRenderer({ images, layout, adjustments, thumbnail, onUpdateAdjust
 
     return (
       <div className="w-full h-full overflow-hidden" onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} style={{ cursor: 'grab' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={images[i]}
           alt=""
@@ -831,7 +842,7 @@ function LayoutRenderer({ images, layout, adjustments, thumbnail, onUpdateAdjust
 
   return wrap(
     <div className="w-full h-full flex items-center justify-center bg-card-hover">
-      <span className="text-3xl font-bold text-border font-[family-name:var(--font-playfair)]">OG</span>
+      <span className="text-3xl font-bold text-border font-[family-name:var(--font-playfair)]">7H</span>
     </div>
   );
 }

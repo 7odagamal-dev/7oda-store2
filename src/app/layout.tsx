@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
@@ -26,16 +26,16 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://oldgold.life'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://7h-store.life'),
   other: {
     'theme-color': '#8BA4B8',
   },
   title: {
-    default: 'OG Old Gold | Premium Luxury Fashion Store',
-    template: '%s | OG Old Gold',
+    default: '7H  | Premium Luxury Fashion Store',
+    template: '%s | 7H ',
   },
-  description: 'Experience the pinnacle of luxury with OG Old Gold. Shop our exclusive collection of premium T-shirts, hoodies, and jackets designed for high-end fashion enthusiasts.',
-  keywords: ['Luxury Fashion', 'OG Old Gold', 'Premium Streetwear', 'Designer Clothing Egypt', 'Exclusive Apparel'],
+  description: 'Experience the pinnacle of luxury with 7H . Shop our exclusive collection of premium T-shirts, hoodies, and jackets designed for high-end fashion enthusiasts.',
+  keywords: ['Luxury Fashion', '7H ', 'Premium Streetwear', 'Designer Clothing Egypt', 'Exclusive Apparel'],
   icons: {
     icon: '/icon.png',
     apple: '/icons/apple-touch-icon.png',
@@ -43,15 +43,15 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://oldgold.life',
-    siteName: 'OG Old Gold',
-    title: 'OG Old Gold | Premium Luxury Fashion Store',
-    description: 'Discover exclusive luxury fashion and high-end designs. Elevate your style with OG Old Gold.',
-    images: [{ url: '/opengraph-image.jpg', width: 1200, height: 630, alt: 'OG Old Gold Luxury Brand' }],
+    url: 'https://7h-store.life',
+    siteName: '7H ',
+    title: '7H  | Premium Luxury Fashion Store',
+    description: 'Discover exclusive luxury fashion and high-end designs. Elevate your style with 7H .',
+    images: [{ url: '/opengraph-image.jpg', width: 1200, height: 630, alt: '7H  Luxury Brand' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'OG Old Gold',
+    title: '7H ',
     description: 'Exclusive luxury fashion and high-end streetwear.',
     images: ['/opengraph-image.jpg'],
   },
@@ -65,14 +65,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <JsonLd data={{
           "@context": "https://schema.org",
           "@type": "ClothingStore",
-          name: "OG Old Gold",
-          url: "https://oldgold.life",
-          logo: "https://oldgold.life/images/logo.jpeg",
+          name: "7H ",
+          url: "https://7h-store.life",
+          logo: "https://7h-store.life/images/logo.jpeg",
           description: "Premium luxury fashion store in Egypt. Shop exclusive T-shirts, hoodies, and jackets.",
           address: { "@type": "PostalAddress", addressLocality: "Alexandria", addressCountry: "EG" },
           sameAs: [
-            "https://www.instagram.com/og.oldgold",
-            "https://www.tiktok.com/@og.oldgold",
+            "https://www.instagram.com/7H.7hstore",
+            "https://www.tiktok.com/@7H.7hstore",
           ],
         }} />
         <ThemeProvider>

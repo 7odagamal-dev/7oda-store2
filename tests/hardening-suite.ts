@@ -18,7 +18,8 @@ import crypto from 'crypto';
 // Helper: build HMAC message the same way callback does
 // ============================================================
 function buildHmacMessage(body: Record<string, unknown>): string {
-  const { hmac: _, ...rest } = body;
+  const { hmac, ...rest } = body;
+  void hmac;
   const sortedKeys = Object.keys(rest).sort();
   return sortedKeys.map(k => {
     const val = rest[k];
@@ -295,10 +296,6 @@ function test_duplicate_rpcs_removed() {
 
 // 5.1 — assertValidOrderTransition correctness
 function test_order_transitions() {
-  // Import the order-state module
-  const path = require('path');
-  const fs = require('fs');
-
   const VALID_TRANSITIONS: Record<string, string[]> = {
     pending:          ['confirmed', 'cancelled'],
     confirmed:        ['preparing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'],
@@ -373,7 +370,6 @@ function test_password_hashing() {
 
 // 5.3 — storeGuard cross-store access prevention
 function test_store_guard() {
-  const DEFAULT_STORE_ID = '00000000-0000-0000-0000-000000000001';
   const STORE_A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
   const STORE_B = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 

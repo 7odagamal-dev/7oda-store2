@@ -4,7 +4,9 @@ import { getAdminSession } from '@/lib/auth';
 import { filterByStore } from '@/lib/db';
 import { csrfGuard, safeJson } from '@/lib/csrf';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { log, newCorrelationId } from '@/lib/logger';
 import { slugify } from '@/lib/slugify';
+import { requireRole } from '@/lib/admin-guards';
 
 function sanitizeProductBody(body: Record<string, unknown>): Record<string, unknown> | null {
   const allowed: Record<string, unknown> = {};
@@ -46,8 +48,12 @@ function sanitizeProductBody(body: Record<string, unknown>): Record<string, unkn
 }
 
 export async function GET(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
+  const roleResp = await requireRole(req, ['superadmin', 'admin']);
+  if (roleResp) return roleResp;
+
   const session = await getAdminSession(req);
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
     const { searchParams } = new URL(req.url);
@@ -70,6 +76,7 @@ export async function GET(req: NextRequest) {
       .range(from, to);
 
     if (error) throw error;
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products', method: 'GET', statusCode: 200, level: 'info', message: 'Products fetched', metadata: { total: count ?? 0, page, limit } });
     return NextResponse.json({
       data: data || [],
       total: count ?? 0,
@@ -79,16 +86,21 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products', method: 'GET', statusCode: 500, level: 'error', message: 'Products fetch failed', error: message });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
   const csrfResp = csrfGuard(req);
   if (csrfResp) return csrfResp;
 
+  const roleResp = await requireRole(req, ['superadmin', 'admin']);
+  if (roleResp) return roleResp;
+
   const session = await getAdminSession(req);
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
   const rlAllowed = await checkRateLimit(ip, 'admin_create_product', 30, 60000);
@@ -110,20 +122,29 @@ export async function POST(req: NextRequest) {
       store_id: session.storeId || '00000000-0000-0000-0000-000000000001',
     };
     const { data, error } = await supabaseAdmin.from('products').insert([insertData]).select().single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products', method: 'POST', statusCode: 500, level: 'error', message: 'Product creation failed', error: error.message });
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products', method: 'POST', statusCode: 201, level: 'info', message: 'Product created', metadata: { productId: data.id } });
     return safeJson(data, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products', method: 'POST', statusCode: 500, level: 'error', message: 'Product creation failed', error: message });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function PUT(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
   const csrfResp = csrfGuard(req);
   if (csrfResp) return csrfResp;
 
+  const roleResp = await requireRole(req, ['superadmin', 'admin']);
+  if (roleResp) return roleResp;
+
   const session = await getAdminSession(req);
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
   const rlAllowed = await checkRateLimit(ip, 'admin_update_product', 30, 60000);
@@ -175,20 +196,29 @@ export async function PUT(req: NextRequest) {
     let query = supabaseAdmin.from('products').update(allowed).eq('id', id);
     if (session.storeId) query = filterByStore(query, session.storeId);
     const { data, error } = await query.select().single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products', method: 'PUT', statusCode: 500, level: 'error', message: 'Product update failed', error: error.message });
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products', method: 'PUT', statusCode: 200, level: 'info', message: 'Product updated', metadata: { productId: data.id } });
     return safeJson(data);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products', method: 'PUT', statusCode: 500, level: 'error', message: 'Product update failed', error: message });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function DELETE(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
   const csrfResp = csrfGuard(req);
   if (csrfResp) return csrfResp;
 
+  const roleResp = await requireRole(req, ['superadmin', 'admin']);
+  if (roleResp) return roleResp;
+
   const session = await getAdminSession(req);
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
   const rlAllowed = await checkRateLimit(ip, 'admin_delete_product', 15, 60000);
@@ -210,10 +240,15 @@ export async function DELETE(req: NextRequest) {
     let query = supabaseAdmin.from('products').delete().eq('id', id);
     if (session.storeId) query = filterByStore(query, session.storeId);
     const { error } = await query;
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products', method: 'DELETE', statusCode: 500, level: 'error', message: 'Product deletion failed', error: error.message });
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products', method: 'DELETE', statusCode: 200, level: 'info', message: 'Product deleted', metadata: { productId: id } });
     return safeJson({ success: true });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/products', method: 'DELETE', statusCode: 500, level: 'error', message: 'Product deletion failed', error: message });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

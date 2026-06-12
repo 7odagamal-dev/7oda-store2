@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { assertValidOrderTransition } from '@/lib/order-state';
+import { checkRateLimit } from '@/lib/rate-limit';
 import crypto from 'crypto';
+import { log } from '@/lib/logger';
 
 const PAYMOB_TXN_WINDOW_MS = 5 * 60 * 1000; // 5 min
 
@@ -87,7 +89,7 @@ async function commitOrderStock(orderId: string): Promise<void> {
     .map(i => ({ product_id: i.product_id, quantity: i.quantity }));
   const { error } = await supabaseAdmin.rpc('commit_order_stock', {
     order_id: orderId,
-    items: JSON.stringify(items),
+    items: items,
   });
   if (error) throw new Error(`Stock commit failed: ${error.message}`);
 }
@@ -103,7 +105,7 @@ async function releaseOrderStock(orderId: string): Promise<void> {
     .map(i => ({ product_id: i.product_id, quantity: i.quantity }));
   const { error } = await supabaseAdmin.rpc('release_order_stock', {
     order_id: orderId,
-    items: JSON.stringify(items),
+    items: items,
   });
   if (error) console.error(`Stock release failed for order ${orderId}:`, error.message);
 }
@@ -122,6 +124,14 @@ function buildHmacMessage(body: Record<string, unknown>): string {
 export async function POST(req: NextRequest) {
   const correlationId = req.headers.get('x-paymob-hmac')?.slice(0, 12) || crypto.randomUUID().slice(0, 8);
   const startTime = Date.now();
+
+  // ── Origin check (defense-in-depth — HMAC below is the real protection) ──
+  // Paymob webhook is server-to-server; Origin may be absent. Only reject if
+  // Origin is present AND doesn't match Paymob's domain.
+  const origin = req.headers.get('origin');
+  if (origin && !origin.startsWith('https://accept.paymob.com')) {
+    return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
+  }
 
   try {
     // ── 0. Read raw body for HMAC, parse for field access ──
@@ -178,7 +188,7 @@ export async function POST(req: NextRequest) {
     // ── 6. Verify order exists + amount match + validate state transition ──
     const amountCents = paymob.amount_cents || paymob.payment_key_claims?.amount_cents;
     const { data: order, error: orderErr } = await supabaseAdmin
-      .from('orders').select('total, status').eq('id', orderId).single();
+      .from('orders').select('total, status, items, store_id').eq('id', orderId).single();
 
     if (orderErr || !order) {
       await markEventFailed(paymobTxnId, 'Order not found');
@@ -195,6 +205,7 @@ export async function POST(req: NextRequest) {
       assertValidOrderTransition(order.status, success ? 'confirmed' : 'cancelled');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Invalid transition';
+      log('warn', { correlationId, route: '/api/paymob/callback', method: 'POST', durationMs: Date.now() - startTime, statusCode: 422, level: 'warn', message: `Invalid transition: ${order.status} → ${success ? 'confirmed' : 'cancelled'}`, metadata: { paymobTxnId, orderId }});
       await markEventFailed(paymobTxnId, msg);
       return NextResponse.json({ error: msg }, { status: 422 });
     }
@@ -214,20 +225,6 @@ export async function POST(req: NextRequest) {
       await releaseOrderStock(orderId);
     }
 
-    // ── Coupon lifecycle: increment on success, release on cancel ──
-    const { data: orderWithCoupon } = await supabaseAdmin
-      .from('orders')
-      .select('coupon_id')
-      .eq('id', orderId)
-      .single();
-    if (orderWithCoupon?.coupon_id) {
-      if (success) {
-        await supabaseAdmin.rpc('atomic_increment_coupon', { p_coupon_id: orderWithCoupon.coupon_id });
-      } else {
-        await supabaseAdmin.rpc('atomic_decrement_coupon', { p_coupon_id: orderWithCoupon.coupon_id });
-      }
-    }
-
     // ── 8. Atomic idempotency lock (only after stock is committed) ──
     const { data: updated } = await supabaseAdmin
       .from('orders')
@@ -244,30 +241,107 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (!updated) {
-      // If idempotency lock prevented double-update but stock was already committed,
-      // this shouldn't happen since we committed stock before status update.
-      // Release the stock we just committed to keep things consistent.
       if (success) { await releaseOrderStock(orderId); }
+      log('info', { correlationId, route: '/api/paymob/callback', method: 'POST', durationMs: Date.now() - startTime, statusCode: 200, level: 'info', message: 'Idempotency skip — already processed', metadata: { paymobTxnId, orderId }});
       return NextResponse.json({ success: true, skipped: true });
     }
 
+    // ── Coupon lifecycle ──
+    // Coupon was already incremented atomically at checkout (checkout/route.ts).
+    // No further coupon action needed here. If payment fails, the coupon
+    // decrement is handled by the admin order cancellation flow.
+
+    // ── Flash sale re-check (warning only — price already locked at checkout) ──
+    if (success && order.items && Array.isArray(order.items)) {
+      try {
+        const productIds = (order.items as Array<{ product_id: string }>).map(i => i.product_id);
+        const { data: activeFlashSales } = await supabaseAdmin
+          .from('flash_sales')
+          .select('product_id, ends_at')
+          .in('product_id', productIds)
+          .eq('store_id', order.store_id)
+          .gt('ends_at', new Date().toISOString());
+        const activeSet = new Set((activeFlashSales || []).map(fs => fs.product_id));
+        for (const item of (order.items as Array<{ product_id: string; name: string }>)) {
+          if (!activeSet.has(item.product_id)) {
+            log('warn', { correlationId, route: '/api/paymob/callback', method: 'POST', durationMs: Date.now() - startTime, statusCode: 200, level: 'warn', message: `Flash sale expired for "${item.name}" — discount already applied at checkout`, metadata: { orderId, productId: item.product_id }});
+          }
+        }
+      } catch {
+        // Flash sale table may not exist yet — non-critical
+      }
+    }
+
     await markEventProcessed(paymobTxnId);
+    log('info', { correlationId, route: '/api/paymob/callback', method: 'POST', durationMs: Date.now() - startTime, statusCode: 200, level: 'info', message: `${success ? 'Payment confirmed' : 'Payment failed'}`, metadata: { paymobTxnId, orderId, success }});
     return NextResponse.json({ success: true, processingMs: Date.now() - startTime });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Internal error';
-    console.error(`[${correlationId}] Paymob callback error:`, msg);
+    log('error', { correlationId, route: '/api/paymob/callback', method: 'POST', durationMs: Date.now() - startTime, statusCode: 500, level: 'error', message: 'Callback error', error: msg });
     await writeError({ errorType: 'unknown', message: msg, correlationId });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const success = searchParams.get('success');
-  const orderId = searchParams.get('merchant_order_id');
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+  const allowed = await checkRateLimit(ip, 'paymob_callback_get', 30, 60000);
+  if (!allowed) {
+    return NextResponse.redirect(getCheckoutUrl(req, 'too_many_requests'));
+  }
 
-  // Redirect only — state mutations happen server-side via POST webhook (HMAC-verified)
-  return NextResponse.redirect(
-    new URL(`/order-success?order_id=${orderId}&success=${success}`, req.url)
-  );
+  const { searchParams } = new URL(req.url);
+  const orderId = searchParams.get('merchant_order_id') || '';
+
+  if (!orderId) {
+    return NextResponse.redirect(getCheckoutUrl(req, 'missing_order'));
+  }
+
+  // READ-ONLY redirect handler — NO mutations of any kind.
+  //
+  // Why this is safe:
+  //   - No HMAC verification (GET cannot carry HMAC headers from browser redirect)
+  //   - No stock commit/release (prevent overselling via forged GET requests)
+  //   - No order status changes (prevent unauthorized confirmation/cancellation)
+  //   - No coupon increment (prevent financial integrity bypass)
+  //
+  // The POST webhook (with HMAC SHA-512 verification at line 152) is the
+  // authoritative handler. It arrives within 1-5 seconds of the redirect.
+  // If the webhook never arrives (dev mode / network issue), the order stays
+  // 'pending' and the admin can confirm it manually via the admin panel.
+  //
+  // UX flow after Paymob redirect:
+  //   1. User pays on Paymob iframe
+  //   2. Paymob redirects browser to this GET handler
+  //   3. GET redirects to /order-success (user sees "Order Placed — Processing")
+  //   4. POST webhook arrives → confirms order, commits stock, increments coupon
+  //   5. User can refresh /order-success to see updated status
+
+  // Verify order exists before redirect (informational — doesn't block redirect)
+  try {
+    await supabaseAdmin
+      .from('orders')
+      .select('id')
+      .eq('id', orderId)
+      .maybeSingle();
+  } catch {
+    // Silent — redirect handles display
+  }
+
+  return NextResponse.redirect(redirectUrl(req, orderId));
+}
+
+// ── Helper: builds redirect URL using the real public host ──
+function getBaseUrl(req: NextRequest): string {
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'localhost:3000';
+  const protocol = req.headers.get('x-forwarded-proto') || 'http';
+  return `${protocol}://${host}`;
+}
+
+function redirectUrl(req: NextRequest, orderId: string): URL {
+  return new URL(`/order-success?order_id=${orderId}&success=true`, getBaseUrl(req));
+}
+
+function getCheckoutUrl(req: NextRequest, error: string): URL {
+  return new URL(`/checkout?error=${error}`, getBaseUrl(req));
 }

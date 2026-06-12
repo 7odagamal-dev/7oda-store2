@@ -2,17 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getStoreContext } from '@/lib/store-context';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { normalizeEmail } from '@/lib/email-utils';
+import { log, newCorrelationId } from '@/lib/logger';
+
+const GENERIC_ERROR = 'Invalid or expired coupon code';
 
 export async function POST(request: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
   try {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
-    const allowed = await checkRateLimit(ip, 'validate_coupon', 10, 60000);
+    const allowed = await checkRateLimit(ip, 'validate_coupon', 3, 60000);
     if (!allowed) {
-      return NextResponse.json({ valid: false, error: 'Too many attempts. Please try again later.' }, { status: 429 });
+      return NextResponse.json({ valid: false, error: GENERIC_ERROR }, { status: 429 });
     }
 
-    const { code, orderTotal } = await request.json();
-    if (!code) return NextResponse.json({ valid: false, error: 'Code is required' });
+    const { code, email } = await request.json();
+    if (!code) return NextResponse.json({ valid: false, error: GENERIC_ERROR });
 
     const { storeId } = await getStoreContext(request);
 
@@ -24,43 +30,48 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error || !coupon) {
-      return NextResponse.json({ valid: false, error: 'Invalid coupon code' });
+      log('warn', { correlationId, durationMs: Date.now() - startMs, route: '/api/coupons/validate', method: 'POST', statusCode: 200, level: 'warn', message: 'Coupon validate: not found', metadata: { code: code.toUpperCase(), ip } });
+      return NextResponse.json({ valid: false, error: GENERIC_ERROR });
     }
 
     if (!coupon.is_active) {
-      return NextResponse.json({ valid: false, error: 'This coupon is no longer active' });
+      log('warn', { correlationId, durationMs: Date.now() - startMs, route: '/api/coupons/validate', method: 'POST', statusCode: 200, level: 'warn', message: 'Coupon validate: inactive', metadata: { code: code.toUpperCase(), ip } });
+      return NextResponse.json({ valid: false, error: GENERIC_ERROR });
     }
 
     if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
-      return NextResponse.json({ valid: false, error: 'This coupon has expired' });
+      log('warn', { correlationId, durationMs: Date.now() - startMs, route: '/api/coupons/validate', method: 'POST', statusCode: 200, level: 'warn', message: 'Coupon validate: expired', metadata: { code: code.toUpperCase(), ip } });
+      return NextResponse.json({ valid: false, error: GENERIC_ERROR });
     }
 
     if (coupon.max_uses && coupon.used_count >= coupon.max_uses) {
-      return NextResponse.json({ valid: false, error: 'This coupon has reached its usage limit' });
+      log('warn', { correlationId, durationMs: Date.now() - startMs, route: '/api/coupons/validate', method: 'POST', statusCode: 200, level: 'warn', message: 'Coupon validate: max uses', metadata: { code: code.toUpperCase(), ip } });
+      return NextResponse.json({ valid: false, error: GENERIC_ERROR });
     }
 
-    if (orderTotal && orderTotal < coupon.min_order) {
-      return NextResponse.json({ valid: false, error: `Minimum order amount is EGP ${coupon.min_order}` });
+    if (coupon.linked_email) {
+      if (!email) {
+        log('warn', { correlationId, durationMs: Date.now() - startMs, route: '/api/coupons/validate', method: 'POST', statusCode: 200, level: 'warn', message: 'Coupon validate: linked email required', metadata: { code: code.toUpperCase(), ip } });
+        return NextResponse.json({ valid: false, error: GENERIC_ERROR });
+      }
+      const normalizedInput = normalizeEmail(email);
+      if (!normalizedInput || normalizedInput !== coupon.linked_email) {
+        log('warn', { correlationId, durationMs: Date.now() - startMs, route: '/api/coupons/validate', method: 'POST', statusCode: 200, level: 'warn', message: 'Coupon validate: email mismatch', metadata: { code: code.toUpperCase(), ip } });
+        return NextResponse.json({ valid: false, error: GENERIC_ERROR });
+      }
     }
 
-    let discountAmount = 0;
-    if (coupon.discount_type === 'percentage') {
-      discountAmount = Math.round((orderTotal * coupon.discount_value) / 100);
-    } else {
-      discountAmount = coupon.discount_value;
-    }
-
-    if (discountAmount > orderTotal) discountAmount = orderTotal;
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/coupons/validate', method: 'POST', statusCode: 200, level: 'info', message: 'Coupon validated successfully', metadata: { code: coupon.code, ip } });
 
     return NextResponse.json({
       valid: true,
-      discount: discountAmount,
-      discountType: coupon.discount_type,
-      discountValue: coupon.discount_value,
+      discount_type: coupon.discount_type,
+      discount_value: coupon.discount_value,
       code: coupon.code,
+      linked_email: coupon.linked_email,
     });
   } catch (error) {
-    console.error('Coupon validation error:', error);
-    return NextResponse.json({ valid: false, error: 'Failed to validate coupon' });
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/coupons/validate', method: 'POST', statusCode: 500, level: 'error', message: 'Unexpected validation error', error: error instanceof Error ? error.message : 'unknown' });
+    return NextResponse.json({ valid: false, error: GENERIC_ERROR });
   }
 }

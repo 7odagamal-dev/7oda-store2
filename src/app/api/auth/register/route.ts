@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { log, newCorrelationId } from '@/lib/logger';
 
 const MAX_REGISTRATIONS = 5;
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -8,6 +9,9 @@ const WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
+
   const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
 
   const isAllowed = await checkRateLimit(ip, 'customer_register', MAX_REGISTRATIONS, WINDOW_MS);
@@ -49,6 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Return success ──
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/auth/register', method: 'POST', statusCode: 201, level: 'info', message: 'Registration successful', metadata: { email: normalizedEmail } });
     return NextResponse.json({
       success: true,
       user: {
@@ -59,6 +64,7 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/auth/register', method: 'POST', statusCode: 500, level: 'error', message: 'Registration failed', error: msg });
     console.error('Registration error:', msg);
     return NextResponse.json({ error: 'Registration failed' }, { status: 500 });
   }

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Product } from '@/lib/supabase';
 import { adminFetch } from '@/lib/admin-fetch';
 import { slugify } from '@/lib/slugify';
+import { AdminPagination } from '../components/AdminPagination';
 
 interface ProductImage {
   id: string;
@@ -29,6 +30,9 @@ const defaultProduct = {
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'list' | 'add'>('list');
@@ -41,19 +45,25 @@ export default function AdminProducts() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await adminFetch('/api/admin/products');
+      const res = await adminFetch('/api/admin/products?page=' + page + '&limit=24&search=' + encodeURIComponent(searchTerm));
       if (!res.ok) throw new Error('Unauthorized');
       const data = await res.json();
-      const list = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
-      setProducts(list);
+      setProducts(data.data ?? []);
+      setTotal(data.total ?? 0);
+      setTotalPages(data.totalPages ?? 1);
     } catch (error) {
       console.error('fetchProducts error:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, searchTerm]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setPage(1);
+  };
 
   const handleImageUrlAdd = useCallback(() => {
     if (!newImageUrl.trim()) return;
@@ -215,14 +225,7 @@ export default function AdminProducts() {
     setUploadError('');
   };
 
-  if (!Array.isArray(products)) {
-    console.error('products is not an array:', typeof products, products);
-  }
-  const list = Array.isArray(products) ? products : [];
-  const filteredProducts = list.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const displayProducts = Array.isArray(products) ? products : [];
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="p-[var(--space-sm)]">
@@ -231,7 +234,7 @@ export default function AdminProducts() {
           className={`px-[var(--space-lg)] py-[var(--space-sm)] rounded-[var(--radius-xl)] font-medium text-[var(--text-sm)] transition-all ${
             activeTab === 'list' ? 'bg-accent text-white shadow-sm' : 'bg-card border border-border text-secondary hover:border-accent'
           }`}>
-          Products ({products.length})
+          Products ({total})
         </button>
         <button onClick={() => { resetForm(); setActiveTab('add'); }}
           className={`px-[var(--space-lg)] py-[var(--space-sm)] rounded-[var(--radius-xl)] font-medium text-[var(--text-sm)] transition-all ${
@@ -244,16 +247,16 @@ export default function AdminProducts() {
       {activeTab === 'list' && (
         <>
           <div className="relative mb-[var(--space-lg)]">
-            <input type="text" placeholder="Search products..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+            <input type="text" placeholder="Search products..." value={searchTerm} onChange={handleSearchChange}
               className="w-full max-w-md px-[var(--space-md)] py-[var(--space-sm)] bg-card border border-border rounded-[var(--radius-xl)] text-foreground placeholder-secondary focus:border-accent focus:outline-none text-[var(--text-sm)] transition-all" />
           </div>
           {loading ? (
             <div className="flex items-center justify-center py-[var(--space-3xl)]"><div className="animate-spin rounded-full h-10 w-10 border-2 border-accent border-t-transparent"></div></div>
-          ) : filteredProducts.length === 0 ? (
+          ) : displayProducts.length === 0 ? (
             <div className="text-center py-[var(--space-3xl)] text-secondary"><div className="text-6xl mb-[var(--space-md)]">📦</div><p className="text-[var(--text-xl)] font-[family-name:var(--font-playfair)]">No products found</p></div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[var(--space-md)]">
-              {filteredProducts.map(product => (
+              {displayProducts.map(product => (
                 <div key={product.id} className="bg-card rounded-[var(--radius-xl)] p-[var(--space-md)] border border-border hover:shadow-md transition-all group">
                   <div className="relative h-48 bg-card-hover rounded-[var(--radius-md)] mb-[var(--space-sm)] overflow-hidden">
                     {product.main_image ? (
@@ -286,6 +289,7 @@ export default function AdminProducts() {
               ))}
             </div>
           )}
+          <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
         </>
       )}
 

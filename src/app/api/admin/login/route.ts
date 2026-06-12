@@ -3,6 +3,7 @@ import { createSession, warmupSchema } from '@/lib/auth';
 import { normalizeSupabaseProjectUrl } from '@/lib/supabase-project-url';
 
 import { checkRateLimit, clearRateLimit } from '@/lib/rate-limit';
+import { log, newCorrelationId } from '@/lib/logger';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
@@ -30,6 +31,9 @@ function isLikelyNetworkFetchFailure(message: string): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  const correlationId = newCorrelationId();
+  const startMs = Date.now();
+
   // Warm up schema cache to avoid PostgREST cold-start delay
   warmupSchema();
 
@@ -145,9 +149,11 @@ export async function POST(req: NextRequest) {
       userId: null,
       userRole: 'superadmin',
     });
+    log('info', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/login', method: 'POST', statusCode: 200, level: 'info', message: 'Admin login successful' });
     return response;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    log('error', { correlationId, durationMs: Date.now() - startMs, route: '/api/admin/login', method: 'POST', statusCode: 503, level: 'error', message: 'Admin login failed - session store error', error: msg });
     console.error('Admin session store failed:', msg);
     if (isLikelyNetworkFetchFailure(msg)) {
       return NextResponse.json(

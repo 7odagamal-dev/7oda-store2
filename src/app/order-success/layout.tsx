@@ -1,7 +1,7 @@
-import { Metadata } from 'next';
+﻿import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Order Status - OG Store',
+  title: 'Order Status - 7H Store',
   description: 'View your order confirmation and status.',
 };
 

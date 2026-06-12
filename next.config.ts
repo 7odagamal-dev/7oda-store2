@@ -1,24 +1,5 @@
 import type { NextConfig } from "next";
-
-function buildCSP(): string {
-  const isDev = process.env.NODE_ENV === 'development';
-  const scriptSrc = isDev
-    ? "'self' 'unsafe-inline' 'unsafe-eval'"
-    : "'self' 'unsafe-inline'";
-  return [
-    "default-src 'self'",
-    `script-src ${scriptSrc}`,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: blob: https:",
-    "connect-src 'self' https://*.supabase.co https://accept.paymob.com https://*.paymob.com",
-    "frame-src 'self' https://accept.paymob.com",
-    "frame-ancestors 'none'",
-    "form-action 'self'",
-    "base-uri 'self'",
-    "worker-src 'self' blob:",
-  ].join('; ');
-}
+import { withSentryConfig } from "@sentry/nextjs";
 
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
@@ -27,7 +8,7 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-  { key: 'Content-Security-Policy', value: buildCSP() },
+  // CSP is set dynamically per-request in proxy.ts (nonce-based)
 ];
 
 const swHeaders = [
@@ -50,6 +31,10 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    // Allow query strings on local images (for cache-busting versioning)
+    localPatterns: [
+      { pathname: '/images/**' },
+    ],
     // FIX: Removed the overly broad hostname: '**' pattern which allows
     // next/image to proxy ANY external URL (a security and abuse risk).
     // We keep only the domains actually used by this project.
@@ -78,4 +63,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: process.env.NODE_ENV !== 'production',
+  widenClientFileUpload: true,
+  telemetry: false,
+});
